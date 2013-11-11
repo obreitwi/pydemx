@@ -21,7 +21,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .logcfg import log
 
-from .parser import Parser
+# very primitive at the moment just for testing
+import sys
+
+if __name__ == "__main__":
+    from pydemx import Parser
+
+    for filename in sys.argv[1:]:
+        with open(filename, "r") as f:
+            Parser(f)
 

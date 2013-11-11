@@ -39,7 +39,8 @@ class Parser(object):
     """
 
     default_configuration = {
-            # If not specified will be the original file filename without ending.
+            # If not specified will be the original file filename without
+            # ending.
             "target_filename" : None,
             # If not specified will be the current folder
             "target_folder" : ".",
@@ -50,7 +51,7 @@ class Parser(object):
             "key_designator" : "@",
         }
 
-    def __init__(self, skeleton_file, out_file=None):
+    def __init__(self, skeleton_file):
         """
             skeleton_file: The file to be read. 
 
@@ -60,10 +61,7 @@ class Parser(object):
         log.info("Reading {}..".format(
             skeleton_file.name if hasattr(skeleton_file, "name") else "file"))
         self.skeleton = skeleton_file
-        self.templates = {}
-
         self.setup_replacements()
-
         self.parse_file()
 
 
@@ -71,16 +69,20 @@ class Parser(object):
         self.skeleton.seek(0)
         self.extract_magic_line()
         self.read_configuration()
-        self.create_matcher()
+        self.create_utils()
         self.read_replacements()
+        self.prepare_replacements()
+        self.write()
 
 
     def read_replacements(self):
         """
             Read all special blocks.
         """
+        self.regular_text = StringIO.StringIO()
         for line in iter(self.skeleton.readline, ''):
             if not self.is_magic_line(line):
+                self.regular_text.write(line)
                 continue
 
             new_block = self.read_block()
@@ -92,6 +94,11 @@ class Parser(object):
                 if match_info["key"] is None:
                     # create a new replacement with the corresponding default
                     self.replacement_type(match_info["name"], new_block)
+
+                    # and insert a placeholder indicating its position in the
+                    # regular text
+                    self.regular_text.write(self.format_replacement.format(
+                        name=match_info["key"]))
                 else:
                     self.replacements[match_info["name"]][match_info["key"]] =\
                             new_block
@@ -124,9 +131,10 @@ class Parser(object):
         exec(config_block_code, {}, config_context)
 
 
-    def create_matcher(self):
+    def create_utils(self):
         """
-            Creates the appropriate matchers from the configuration.
+            Creates the appropriate matchers from the configuration as well as
+            formatter strings.
         """
         magic_line = r"^.{{{len_magic_line:d}}}\s+?(P<name>\S+?)"\
             "(\s*{designator}\s*(?<key>\S+))?$".format(
@@ -139,6 +147,10 @@ class Parser(object):
                     pre=self.config["variable_pre"],
                     post=self.config["variable_post"],
                     sep=self.config["default_seperator"]))
+
+        self.format_replacement = "{pre}{{name}}{post}".format(
+                    pre=self.config["variable_pre"],
+                    post=self.config["variable_post"])
 
 
     def read_block(self):
@@ -178,18 +190,51 @@ class Parser(object):
             self.raw_magic_line = sk.readline().strip()
 
 
-
     def is_magic_line(self, line):
         return line.startswith(self.raw_magic_line)
 
 
     def is_extended_magic_line(self, line):
-        return self.matcher_magic_line.match(line) is not None
+        if not hasattr(self, "matcher_magic_line"):
+            return False
+        else:
+            return self.matcher_magic_line.match(line) is not None
+
+
+    def prepare_replacements(self):
+        self.replacements_done = {}
+
+
+    def get_replacement_for_match(self, match):
+        return self.get_replacement(match.groupdict()["name"])
+
+    def get_replacement(self, name):
+        if name not in self.replacements_done:
+            self.make_replacement(name)
+        return self.replacements_done[name]
+
+
+    def make_replacement(self, name):
+        # to prevent loops when replacements reference each other
+        # we insert None first (which will cause an error but not a deadlock)
+        self.replacements_done[name] = None
+        raw_rep = self.replacments[name].get(self.config["key_func"]())
+
+        return self.matcher_replacement.sub(self.get_replacement_for_match,
+                raw_rep)
 
 
     def write(self, filename=None):
         """
             filename: If None, use name extracted from skeleton file.
         """
-        pass
+        if filename is None:
+            filename = osp.join(self.config["target_folder"],
+                    self.config["target_filename"])
+            with open(filename, "w") as f:
+                self.regular_text.seek(0)
+                for line in iter(self.regular_text.readline, ''):
+                    f.write(self.matcher_replacement.sub(
+                        self.get_replacement_for_match, line))
+
 
