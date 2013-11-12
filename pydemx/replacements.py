@@ -21,6 +21,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+from pprint import pformat as pf
+
 class Replacement(dict):
     """
         Replacement object that gets instanciated by the client to define
@@ -36,6 +38,10 @@ class Replacement(dict):
     def __getitem__(self, key):
         return self.storage.get(key, self.default)
 
+    def __repr__(self):
+        return pf(super(Replacement, self).__repr__()) + " | " +\
+                pf("default: {}".format(self.default))
+
 
 class ReplacementFactory(object):
     """
@@ -49,12 +55,18 @@ class ReplacementFactory(object):
         self._product_type = self._create_product_type()
 
     def _create_product_type(self):
-        def new_init(_self, name, *args, **kwargs):
-            self.created[name] = _self
-            super(_self.__class__, _self).__init__(name, *args, **kwargs)
+        # yay for creative names
+        def new_new(cls, name, *args, **kwargs):
+            if name in self.created:
+                return self.created[name]
+            else:
+                instance = super(self._raw_product_type, cls).__new__(cls, name,
+                        *args, **kwargs)
+                self.created[name] = instance
+            return instance
 
         dct = {
-                "__init__" : new_init,
+                "__new__" : new_new,
             }
 
         return type(self._raw_product_type.__name__ + "Tracked",

@@ -27,6 +27,9 @@ import re
 import StringIO
 import copy
 import socket
+from pprint import pformat as pf
+import os.path as osp
+import logging
 
 from .logcfg import log
 from . import misc as m
@@ -45,10 +48,11 @@ class Parser(object):
             # If not specified will be the current folder
             "target_folder" : ".",
             "key_func" : socket.gethostname,
-            "variable_pre" : "{{",
-            "variable_post" : "}}",
+            "variable_pre" : r"{{",
+            "variable_post" : r"}}",
             "default_seperator" : ":",
-            "key_designator" : "@",
+            "key_designator" : "@", # make sure this is no python.re special
+                                    # character
         }
 
     def __init__(self, skeleton_file):
@@ -58,7 +62,7 @@ class Parser(object):
             out_file: Alternate output file that is instead of the location
                       specified in the skeleton file.
         """
-        log.info("Reading {}..".format(
+        log.debug("Reading {}..".format(
             skeleton_file.name if hasattr(skeleton_file, "name") else "file"))
         self.skeleton = skeleton_file
         self.setup_replacements()
@@ -72,6 +76,8 @@ class Parser(object):
         self.create_utils()
         self.read_replacements()
         self.prepare_replacements()
+        if log.getEffectiveLevel() <= logging.DEBUG:
+            log.debug(pf(self.replacements))
         self.write()
 
 
@@ -82,6 +88,13 @@ class Parser(object):
         self.regular_text = StringIO.StringIO()
         for line in iter(self.skeleton.readline, ''):
             if not self.is_magic_line(line):
+                log.debug("Non-special line: {}".format(line.strip()))
+                for match in self.matcher_replacement.finditer(line):
+                    gd = match.groupdict()
+                    if gd["default"] is not None:
+                        self.replacement_type(gd["name"]).default =\
+                                gd["default"]
+
                 self.regular_text.write(line)
                 continue
 
@@ -98,7 +111,7 @@ class Parser(object):
                     # and insert a placeholder indicating its position in the
                     # regular text
                     self.regular_text.write(self.format_replacement.format(
-                        name=match_info["key"]))
+                        name=match_info["name"]))
                 else:
                     self.replacements[match_info["name"]][match_info["key"]] =\
                             new_block
@@ -121,14 +134,19 @@ class Parser(object):
                 break
 
         config_block = self.read_block()
-        self.config = copy.deepcopy(self.default_configuration),
+        self.config = copy.deepcopy(self.default_configuration)
         config_context = {
                 "config" : self.config,
                 "R" : self.replacement_type,
             }
 
+        self.config["target_filename"] = osp.splitext(self.skeleton.name)[0]
+
         config_block_code = compile(config_block, "<string>", "exec")
         exec(config_block_code, {}, config_context)
+
+        if log.getEffectiveLevel() <= logging.DEBUG:
+            log.debug(pf(self.config))
 
 
     def create_utils(self):
@@ -136,21 +154,27 @@ class Parser(object):
             Creates the appropriate matchers from the configuration as well as
             formatter strings.
         """
-        magic_line = r"^.{{{len_magic_line:d}}}\s+?(P<name>\S+?)"\
-            "(\s*{designator}\s*(?<key>\S+))?$".format(
+        magic_line = r"^.{{{len_magic_line:d}}}\s*((?P<name>\S+?)"\
+            "(\s*{designator}\s*(?P<key>\S+))?)?$".format(
                 len_magic_line=len(self.raw_magic_line),
                 designator=self.config["key_designator"])
-        self.matcher_magic_line(re.compile(magic_line))
+        log.debug("Magic line: {}".format(magic_line))
+        self.matcher_magic_line = re.compile(magic_line)
 
-        self.matcher_replacement = re.compile(
-                r"{pre}(?<name>\S+?)({sep}(?P<default>\S+?)){post}".format(
+        replacement_line =\
+                r"{pre}(?P<name>\S+?)({sep}(?P<default>.+?))?{post}".format(
                     pre=self.config["variable_pre"],
                     post=self.config["variable_post"],
-                    sep=self.config["default_seperator"]))
+                    sep=self.config["default_seperator"])
 
+        log.debug("Replacement line: {}".format(replacement_line))
+        self.matcher_replacement = re.compile(replacement_line)
+
+        format_encode = lambda x: x.replace("{", "{{").replace("}", "}}")
         self.format_replacement = "{pre}{{name}}{post}".format(
-                    pre=self.config["variable_pre"],
-                    post=self.config["variable_post"])
+                    pre=format_encode(self.config["variable_pre"]),
+                    post=format_encode(self.config["variable_post"]))
+        log.debug("Format-replacement: {}".format(self.format_replacement))
 
 
     def read_block(self):
@@ -198,7 +222,9 @@ class Parser(object):
         if not hasattr(self, "matcher_magic_line"):
             return False
         else:
-            return self.matcher_magic_line.match(line) is not None
+            matcher = self.matcher_magic_line.match(line)
+            return matcher is not None and\
+                    matcher.groupdict()["name"] is not None
 
 
     def prepare_replacements(self):
@@ -206,9 +232,12 @@ class Parser(object):
 
 
     def get_replacement_for_match(self, match):
-        return self.get_replacement(match.groupdict()["name"])
+        # if there is a default section in the match, we need to add
+        # it to the 
+        gd = match.groupdict()
+        return self.get_replacement(gd["name"], gd["default"])
 
-    def get_replacement(self, name):
+    def get_replacement(self, name, default=None):
         if name not in self.replacements_done:
             self.make_replacement(name)
         return self.replacements_done[name]
@@ -218,10 +247,14 @@ class Parser(object):
         # to prevent loops when replacements reference each other
         # we insert None first (which will cause an error but not a deadlock)
         self.replacements_done[name] = None
-        raw_rep = self.replacments[name].get(self.config["key_func"]())
+        try:
+            raw_rep = self.replacements[name][self.config["key_func"]()]
+        except KeyError:
+            self.replacement_type(name)
+            raw_rep = ""
 
-        return self.matcher_replacement.sub(self.get_replacement_for_match,
-                raw_rep)
+        self.replacements_done[name] = self.matcher_replacement.sub(
+                self.get_replacement_for_match, raw_rep)
 
 
     def write(self, filename=None):
@@ -231,10 +264,15 @@ class Parser(object):
         if filename is None:
             filename = osp.join(self.config["target_folder"],
                     self.config["target_filename"])
-            with open(filename, "w") as f:
-                self.regular_text.seek(0)
-                for line in iter(self.regular_text.readline, ''):
-                    f.write(self.matcher_replacement.sub(
-                        self.get_replacement_for_match, line))
+
+        with open(filename, "w") as f:
+            self.regular_text.seek(0)
+            for line in iter(self.regular_text.readline, ''):
+                if log.getEffectiveLevel() <= logging.DEBUG:
+                    log.debug("Current line: {}".format(line.strip()))
+                    for match in self.matcher_replacement.finditer(line):
+                        log.debug(pf(match.groupdict()))
+                f.write(self.matcher_replacement.sub(
+                    self.get_replacement_for_match, line))
 
 

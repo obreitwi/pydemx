@@ -39,7 +39,7 @@ loglevel_in_use = "INFO"               # same for loglevels
 
 
 log = logging.getLogger(LOGNAME)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 default_handler_stream = None
