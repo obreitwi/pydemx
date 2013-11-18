@@ -32,7 +32,7 @@ from .parser import Parser
 raw_docstring = """
 
 Usage: 
-    {prms} [-v] [-r] [-e <ext>] <file_or_folder>...
+    {prog} [-v] [-r] [-e <ext>] <file_or_folder>...
 
 Agruments:
     <file_or_folder>
@@ -51,7 +51,7 @@ def get_updated_docstring():
     return raw_docstring.format(prog=osp.basename(sys.argv[0]))
 
 
-def mainloop(argv=None):
+def main_loop(argv=None):
     if argv is None:
         argv = sys.argv
 
@@ -64,7 +64,8 @@ def mainloop(argv=None):
 
     for faf in files_and_folders:
         if osp.isfile(faf):
-            Parser(faf)
+            with open(faf, "r") as f:
+                Parser(f)
         elif osp.isdir(faf):
             for entry in os.listdir(faf):
                 path = osp.join(faf, entry)
