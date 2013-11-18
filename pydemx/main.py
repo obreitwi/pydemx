@@ -26,8 +26,11 @@ import sys
 import os
 import os.path as osp
 import docopt
+from pprint import pformat as pf
 
 from .parser import Parser
+from . import logcfg
+log = logcfg.log
 
 raw_docstring = """
 
@@ -39,6 +42,9 @@ Agruments:
         If file it will be converted; if folder, convert all `.skel` files in it.
 
 Options:
+    -v --verbose
+        Verbose output.
+
     -r --recursive
         Recurse into subfolders of specified folders. Does NOT recurse files.
 
@@ -56,11 +62,15 @@ def main_loop(argv=None):
         argv = sys.argv
 
     args = docopt.docopt(get_updated_docstring(), argv=argv[1:])
+    if args["--verbose"]:
+        logcfg.make_verbose()
+        log.debug(pf(args))
+
 
     ext = args["--extension"]
     recursive = args["--recursive"]
 
-    files_and_folders = args["file_or_folder"]
+    files_and_folders = args["<file_or_folder>"]
 
     for faf in files_and_folders:
         if osp.isfile(faf):

@@ -62,7 +62,7 @@ class Parser(object):
             out_file: Alternate output file that is instead of the location
                       specified in the skeleton file.
         """
-        log.debug("Reading {}..".format(
+        log.info("Reading {}..".format(
             skeleton_file.name if hasattr(skeleton_file, "name") else "file"))
         self.skeleton = skeleton_file
         self.setup_replacements()
@@ -265,6 +265,7 @@ class Parser(object):
             filename = osp.join(self.config["target_folder"],
                     self.config["target_filename"])
 
+        log.info("Writing: {}".format(filename))
         with open(filename, "w") as f:
             self.regular_text.seek(0)
             for line in iter(self.regular_text.readline, ''):
