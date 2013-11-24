@@ -81,7 +81,7 @@ def main_loop(argv=None):
 
     for faf in files_and_folders:
         if osp.isfile(faf):
-            pool.apply_async(parse_file, faf)
+            pool.apply_async(parse_file, (faf,))
         elif osp.isdir(faf):
             for entry in os.listdir(faf):
                 path = osp.join(faf, entry)
