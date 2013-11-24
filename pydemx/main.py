@@ -26,6 +26,7 @@ import sys
 import os
 import os.path as osp
 import docopt
+import multiprocessing as mp
 from pprint import pformat as pf
 
 from .parser import Parser
@@ -34,12 +35,13 @@ log = logcfg.log
 
 raw_docstring = """
 
-Usage: 
+Usage:
     {prog} [-v] [-r] [-e <ext>] <file_or_folder>...
 
 Agruments:
     <file_or_folder>
-        If file it will be converted; if folder, convert all `.skel` files in it.
+        If file it will be converted; if folder, convert all `.skel` files in
+        it.
 
 Options:
     -v --verbose
@@ -56,6 +58,9 @@ Options:
 def get_updated_docstring():
     return raw_docstring.format(prog=osp.basename(sys.argv[0]))
 
+def parse_file(faf):
+    with open(faf, "r") as f:
+        Parser(f)
 
 def main_loop(argv=None):
     if argv is None:
@@ -72,10 +77,11 @@ def main_loop(argv=None):
 
     files_and_folders = args["<file_or_folder>"]
 
+    pool = mp.Pool()
+
     for faf in files_and_folders:
         if osp.isfile(faf):
-            with open(faf, "r") as f:
-                Parser(f)
+            pool.apply_async(parse_file, faf)
         elif osp.isdir(faf):
             for entry in os.listdir(faf):
                 path = osp.join(faf, entry)
@@ -86,3 +92,5 @@ def main_loop(argv=None):
                 if valid_file or valid_folder:
                     files_and_folders.append(path)
 
+    pool.close()
+    pool.join()

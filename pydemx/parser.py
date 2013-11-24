@@ -28,6 +28,7 @@ import StringIO
 import copy
 import socket
 from pprint import pformat as pf
+import os
 import os.path as osp
 import logging
 
@@ -44,9 +45,9 @@ class Parser(object):
     default_configuration = {
             # If not specified will be the original file filename without
             # ending.
-            "target_filename" : None,
+            "filename" : None,
             # If not specified will be the current folder
-            "target_folder" : ".",
+            "folder" : ".",
             "key_func" : socket.gethostname,
             "variable_pre" : r"{{",
             "variable_post" : r"}}",
@@ -62,11 +63,17 @@ class Parser(object):
             out_file: Alternate output file that is instead of the location
                       specified in the skeleton file.
         """
-        log.info("Reading {}..".format(
-            skeleton_file.name if hasattr(skeleton_file, "name") else "file"))
+        self.name = skeleton_file.name if hasattr(skeleton_file, "name")\
+                    else "file"
+        self.log("Reading file..")
         self.skeleton = skeleton_file
         self.setup_replacements()
         self.parse_file()
+
+
+    def log(self, msg, level="info"):
+        for line in msg.split("\n"):
+            getattr(log, level)("{}: {}".format(self.name, line))
 
 
     def parse_file(self):
@@ -77,7 +84,7 @@ class Parser(object):
         self.read_replacements()
         self.prepare_replacements()
         if log.getEffectiveLevel() <= logging.DEBUG:
-            log.debug(pf(self.replacements))
+            self.log(pf(self.replacements), level="debug")
         self.write()
 
 
@@ -88,7 +95,9 @@ class Parser(object):
         self.regular_text = StringIO.StringIO()
         for line in iter(self.skeleton.readline, ''):
             if not self.is_magic_line(line):
-                log.debug("Non-special line: {}".format(line.strip()))
+                if log.getEffectiveLevel() <= logging.DEBUG:
+                    self.log("Non-special line: {}".format(
+                        line.strip(os.linesep)), level="debug")
                 for match in self.matcher_replacement.finditer(line):
                     gd = match.groupdict()
                     if gd["default"] is not None:
@@ -98,12 +107,15 @@ class Parser(object):
                 self.regular_text.write(line)
                 continue
 
-            new_block = self.read_block()
-
+            # check if there was replacement designation
             match_info = self.matcher_magic_line.match(line).groupdict()
 
-            # check if there was replacement designation
-            if match_info["name"] is not None:
+            is_meta_block = match_info["name"] is None
+
+            new_block = self.read_block(delete_prefix=is_meta_block)
+
+            if not is_meta_block:
+                # there is a regular replacement here, dont delete the prefix
                 if match_info["key"] is None:
                     # create a new replacement with the corresponding default
                     self.replacement_type(match_info["name"], new_block)
@@ -129,24 +141,24 @@ class Parser(object):
 
             Regularly, this is the first block.
         """
-        for line in iter(self.skeleton.readline, ''):
-            if self.is_magic_line(line):
-                break
+        # for line in iter(self.skeleton.readline, ''):
+            # if self.is_magic_line(line):
+                # break
 
-        config_block = self.read_block()
+        config_block = self.read_block(delete_prefix=True)
         self.config = copy.deepcopy(self.default_configuration)
         config_context = {
-                "config" : self.config,
+                "cfg" : self.config,
                 "R" : self.replacement_type,
             }
 
-        self.config["target_filename"] = osp.splitext(self.skeleton.name)[0]
+        self.config["filename"] = osp.splitext(self.skeleton.name)[0]
 
         config_block_code = compile(config_block, "<string>", "exec")
         exec(config_block_code, {}, config_context)
 
         if log.getEffectiveLevel() <= logging.DEBUG:
-            log.debug(pf(self.config))
+            self.log(pf(self.config), level="debug")
 
 
     def create_utils(self):
@@ -158,7 +170,7 @@ class Parser(object):
             "(\s*{designator}\s*(?P<key>\S+))?)?$".format(
                 len_magic_line=len(self.raw_magic_line),
                 designator=self.config["key_designator"])
-        log.debug("Magic line: {}".format(magic_line))
+        self.log("Magic line: {}".format(magic_line), level="debug")
         self.matcher_magic_line = re.compile(magic_line)
 
         replacement_line =\
@@ -167,22 +179,23 @@ class Parser(object):
                     post=self.config["variable_post"],
                     sep=self.config["default_seperator"])
 
-        log.debug("Replacement line: {}".format(replacement_line))
+        self.log("Replacement line: {}".format(replacement_line), level="debug")
         self.matcher_replacement = re.compile(replacement_line)
 
         format_encode = lambda x: x.replace("{", "{{").replace("}", "}}")
         self.format_replacement = "{pre}{{name}}{post}".format(
                     pre=format_encode(self.config["variable_pre"]),
                     post=format_encode(self.config["variable_post"]))
-        log.debug("Format-replacement: {}".format(self.format_replacement))
+        self.log("Format-replacement: {}".format(self.format_replacement),
+                level="debug")
 
 
-    def read_block(self):
+    def read_block(self, delete_prefix=False):
         """
             Assumes the block starts at the current line.
         """
-        log.debug("Reading block starting at position: {}".format(
-            self.skeleton.tell()))
+        self.log("Reading block starting at position: {}".format(
+            self.skeleton.tell()), level="debug")
         block_cache = StringIO.StringIO()
 
         # since the user can omitt the last line if it is
@@ -192,6 +205,8 @@ class Parser(object):
             if self.is_magic_line(line):
                 break
             else:
+                if delete_prefix and line.startswith(self.meta_prefix):
+                    line = line[len(self.meta_prefix):]
                 block_cache.write(line)
             filepos = self.skeleton.tell()
 
@@ -209,9 +224,18 @@ class Parser(object):
 
 
     def extract_magic_line(self):
-        with m.save_filepos(self.skeleton) as sk:
-            sk.seek(0)
-            self.raw_magic_line = sk.readline().strip()
+        sk = self.skeleton
+        sk.seek(0)
+        self.raw_magic_line = sk.readline().strip(os.linesep)
+
+        # the second line has to contain the magic line and the prefix
+        second_line = sk.readline().strip(os.linesep)
+
+        if not self.is_magic_line(second_line):
+            self.log("Second line does not start with the magic line!",
+                    level="error")
+
+        self.meta_prefix = second_line[len(self.raw_magic_line):]
 
 
     def is_magic_line(self, line):
@@ -262,17 +286,18 @@ class Parser(object):
             filename: If None, use name extracted from skeleton file.
         """
         if filename is None:
-            filename = osp.join(self.config["target_folder"],
-                    self.config["target_filename"])
+            filename = osp.join(self.config["folder"],
+                    self.config["filename"])
 
-        log.info("Writing: {}".format(filename))
+        self.log("Writing: {}".format(filename))
         with open(filename, "w") as f:
             self.regular_text.seek(0)
             for line in iter(self.regular_text.readline, ''):
                 if log.getEffectiveLevel() <= logging.DEBUG:
-                    log.debug("Current line: {}".format(line.strip()))
+                    self.log("Current line: {}".format(line.strip(os.linesep)),
+                            level="debug")
                     for match in self.matcher_replacement.finditer(line):
-                        log.debug(pf(match.groupdict()))
+                        self.log(pf(match.groupdict()), level="debug")
                 f.write(self.matcher_replacement.sub(
                     self.get_replacement_for_match, line))
 
