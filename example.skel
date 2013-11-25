@@ -1,0 +1,26 @@
+#>>>
+#>>># 
+# cfg["filename"] = "testing_example"
+#>>>
+
+This is a {{testcase}}.
+
+#>>>
+# r = R("testcase", "default case")
+# r["juno"] = "special case"
+# R("thisisnotused")
+#>>>
+#>>> testsection
+This is a whole testsection.
+#>>> testsection@nurikum
+This is a whole special testsection.
+
+With multilines and all.
+#>>>
+
+A replacement with a {{value:default value}}
+This is the regular end of the file.
+
+#>>>
+# # vim: ft=python
+#>>>
