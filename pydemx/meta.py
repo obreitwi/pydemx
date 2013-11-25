@@ -21,32 +21,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from pprint import pformat as pf
-import logging
 
 from .logcfg import log
-from .meta import Singleton
 
-class Replacement(dict):
-    """
-        Replacement object that gets instanciated by the client to define
-        replacements.
-    """
-    __metaclass__ = Singleton
 
-    def __init__(self, name, default=None):
-        if log.getEffectiveLevel() <= logging.DEBUG:
-            log.debug("Creating replacement {}.".format(name))
-        self.name = name
-        self.storage = {}
-        self.default = default
-        super(Replacement, self).__init__()
+class Singleton(type):
+    _instances = {}
 
-    def __getitem__(self, key):
-        return self.storage.get(key, self.default)
+    def __call__(cls, name, *args, **kwargs):
+        log.debug("Calling {}".format(name))
+        if name in self.created:
+            instance = cls._instances[name]
+            if "default" in kwargs:
+                instance.default = kwargs["default"]
+        else:
+            instance = cls.__new__(name, *args, **kwargs)
+            cls.instance[name] = instance
+        return instance
 
-    def __repr__(self):
-        return pf(super(Replacement, self).__repr__()) + " | " +\
-                pf("default: {}".format(self.default))
+    @property
+    def instances(cls):
+        return cls._instances
+
+    def clear_instances(cls):
+        cls_instances = {}
 
 

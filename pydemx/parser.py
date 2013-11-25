@@ -34,7 +34,7 @@ import logging
 
 from .logcfg import log
 from . import misc as m
-from .replacements import ReplacementFactory
+from .replacements import Replacement
 
 
 class Parser(object):
@@ -58,7 +58,7 @@ class Parser(object):
 
     def __init__(self, skeleton_file):
         """
-            skeleton_file: The file to be read. 
+            skeleton_file: The file to be read.
 
             out_file: Alternate output file that is instead of the location
                       specified in the skeleton file.
@@ -131,7 +131,7 @@ class Parser(object):
 
             else:
                 # the block is python code to be executed
-                local_context = {"R": self.replacement_type}
+                local_context = {"R": Replacement}
                 compiled = compile(new_block, "<string>", "exec")
                 exec(compiled, {}, local_context)
 
@@ -150,7 +150,7 @@ class Parser(object):
         self.config = copy.deepcopy(self.default_configuration)
         config_context = {
                 "cfg" : self.config,
-                "R" : self.replacement_type,
+                "R" : Replacement,
             }
 
         self.config["filename"] = osp.splitext(self.skeleton.name)[0]
@@ -219,9 +219,8 @@ class Parser(object):
 
 
     def setup_replacements(self):
-        self.replacement_factory = ReplacementFactory()
-        self.replacement_type = self.replacement_factory.product_type
-        self.replacements = self.replacement_factory.created
+        Replacement.clear_instances()
+        self.replacements = Replacement.instances
 
 
     def extract_magic_line(self):
@@ -269,6 +268,7 @@ class Parser(object):
 
 
     def process_replacement(self, name):
+        self.log("Processing {}".format(name), level="debug")
         # to prevent loops when replacements reference each other
         # we insert None first (which will cause an error but not a deadlock)
         self.replacements_done[name] = None
@@ -277,6 +277,8 @@ class Parser(object):
         except KeyError:
             self.replacement_type(name)
             raw_rep = ""
+
+        self.log(pf(raw_rep), level="debug")
 
         self.replacements_done[name] = self.matcher_replacement.sub(
                 self.get_replacement_for_match, raw_rep)
@@ -289,6 +291,8 @@ class Parser(object):
         if filename is None:
             filename = osp.join(self.config["folder"],
                     self.config["filename"])
+
+        filename = osp.expandvars(osp.expanduser(filename))
 
         self.log("Writing: {}".format(filename))
         with open(filename, "w") as f:
