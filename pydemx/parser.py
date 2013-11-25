@@ -86,6 +86,7 @@ class Parser(object):
         if log.getEffectiveLevel() <= logging.DEBUG:
             self.log(pf(self.replacements), level="debug")
         self.write()
+        self.check_unused_replacements()
 
 
     def read_replacements(self):
@@ -263,11 +264,11 @@ class Parser(object):
 
     def get_replacement(self, name, default=None):
         if name not in self.replacements_done:
-            self.make_replacement(name)
+            self.process_replacement(name)
         return self.replacements_done[name]
 
 
-    def make_replacement(self, name):
+    def process_replacement(self, name):
         # to prevent loops when replacements reference each other
         # we insert None first (which will cause an error but not a deadlock)
         self.replacements_done[name] = None
@@ -301,4 +302,13 @@ class Parser(object):
                 f.write(self.matcher_replacement.sub(
                     self.get_replacement_for_match, line))
 
+
+    def check_unused_replacements(self):
+        if log.getEffectiveLevel() <= logging.DEBUG:
+            self.log(pf(self.replacements), level="debug")
+            self.log(pf(self.replacements_done), level="debug")
+        for rep in self.replacements:
+            if rep not in self.replacements_done:
+                self.log("Replacment \"{}\" defined but not used.".format(rep),
+                        level="warn")
 

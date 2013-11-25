@@ -22,6 +22,9 @@
 # THE SOFTWARE.
 
 from pprint import pformat as pf
+import logging
+
+from .logcfg import log
 
 class Replacement(dict):
     """
@@ -30,6 +33,9 @@ class Replacement(dict):
     """
 
     def __init__(self, name, default=None):
+        if log.getEffectiveLevel() <= logging.DEBUG:
+            log.debug("Creating replacement {}.".format(name))
+
         self.name = name
         self.storage = {}
         self.default = default
