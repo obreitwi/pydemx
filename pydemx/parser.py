@@ -67,8 +67,8 @@ class Parser(object):
                     else "file"
         self.log("Reading file..")
         self.skeleton = skeleton_file
-        self.setup_replacements()
-        self.parse_file()
+        self._setup_replacements()
+        self._parse_file()
 
 
     def log(self, msg, level="info"):
@@ -76,20 +76,20 @@ class Parser(object):
             getattr(log, level)("{}: {}".format(self.name, line))
 
 
-    def parse_file(self):
+    def _parse_file(self):
         self.skeleton.seek(0)
-        self.extract_magic_line()
-        self.read_configuration()
-        self.create_utils()
-        self.read_replacements()
-        self.prepare_replacements()
+        self._extract_magic_line()
+        self._read_configuration()
+        self._create_utils()
+        self._read_replacements()
+        self._prepare_replacements()
         if log.getEffectiveLevel() <= logging.DEBUG:
             self.log(pf(self.replacements), level="debug")
-        self.write()
-        self.check_unused_replacements()
+        self._write_output()
+        self._check_unused_replacements()
 
 
-    def read_replacements(self):
+    def _read_replacements(self):
         """
             Read all special blocks.
         """
@@ -113,7 +113,7 @@ class Parser(object):
 
             is_meta_block = match_info["name"] is None
 
-            new_block = self.read_block(delete_prefix=is_meta_block)
+            new_block = self._read_block(delete_prefix=is_meta_block)
 
             if not is_meta_block:
                 # there is a regular replacement here, dont delete the prefix
@@ -136,7 +136,7 @@ class Parser(object):
                 exec(compiled, {}, local_context)
 
 
-    def read_configuration(self):
+    def _read_configuration(self):
         """
             Interprets the next magic block read to be the configuration block.
 
@@ -146,7 +146,7 @@ class Parser(object):
             # if self.is_magic_line(line):
                 # break
 
-        config_block = self.read_block(delete_prefix=True)
+        config_block = self._read_block(delete_prefix=True)
         self.config = copy.deepcopy(self.default_configuration)
         config_context = {
                 "cfg" : self.config,
@@ -162,7 +162,7 @@ class Parser(object):
             self.log(pf(self.config), level="debug")
 
 
-    def create_utils(self):
+    def _create_utils(self):
         """
             Creates the appropriate matchers from the configuration as well as
             formatter strings.
@@ -191,7 +191,7 @@ class Parser(object):
                 level="debug")
 
 
-    def read_block(self, delete_prefix=False):
+    def _read_block(self, delete_prefix=False):
         """
             Assumes the block starts at the current line.
         """
@@ -218,12 +218,12 @@ class Parser(object):
         return block_cache.getvalue()
 
 
-    def setup_replacements(self):
+    def _setup_replacements(self):
         Replacement.clear_instances()
         self.replacements = Replacement.instances
 
 
-    def extract_magic_line(self):
+    def _extract_magic_line(self):
         sk = self.skeleton
         sk.seek(0)
         self.raw_magic_line = sk.readline().strip(os.linesep)
@@ -251,7 +251,7 @@ class Parser(object):
                     matcher.groupdict()["name"] is not None
 
 
-    def prepare_replacements(self):
+    def _prepare_replacements(self):
         self.replacements_done = {}
 
 
@@ -263,11 +263,11 @@ class Parser(object):
 
     def get_replacement(self, name, default=None):
         if name not in self.replacements_done:
-            self.process_replacement(name)
+            self._process_replacement(name)
         return self.replacements_done[name]
 
 
-    def process_replacement(self, name):
+    def _process_replacement(self, name):
         self.log("Processing {}".format(name), level="debug")
         # to prevent loops when replacements reference each other
         # we insert None first (which will cause an error but not a deadlock)
@@ -284,7 +284,7 @@ class Parser(object):
                 self.get_replacement_for_match, raw_rep)
 
 
-    def write(self, filename=None):
+    def _write_output(self, filename=None):
         """
             filename: If None, use name extracted from skeleton file.
         """
@@ -307,7 +307,7 @@ class Parser(object):
                     self.get_replacement_for_match, line))
 
 
-    def check_unused_replacements(self):
+    def _check_unused_replacements(self):
         if log.getEffectiveLevel() <= logging.DEBUG:
             self.log(pf(self.replacements), level="debug")
             self.log(pf(self.replacements_done), level="debug")
