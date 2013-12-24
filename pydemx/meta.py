@@ -30,18 +30,20 @@ class Singleton(type):
 
     def __call__(cls, name, *args, **kwargs):
         log.debug("Calling {}".format(name))
-        if name in self.created:
+        if name in cls.instances:
             instance = cls._instances[name]
-            if "default" in kwargs:
-                instance.default = kwargs["default"]
+            instance.__init__(name, *args, **kwargs)
         else:
-            instance = cls.__new__(name, *args, **kwargs)
-            cls.instance[name] = instance
+            instance = super(Singleton, cls).__call__(name, *args, **kwargs)
+            cls.add_instance(name, instance)
         return instance
 
     @property
     def instances(cls):
         return cls._instances
+
+    def add_instance(cls, name, instance):
+        cls._instances[name] = instance
 
     def clear_instances(cls):
         cls_instances = {}

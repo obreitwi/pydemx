@@ -26,7 +26,6 @@ import sys
 import os
 import os.path as osp
 import docopt
-import multiprocessing as mp
 from pprint import pformat as pf
 
 from .parser import Parser
@@ -58,9 +57,11 @@ Options:
 def get_updated_docstring():
     return raw_docstring.format(prog=osp.basename(sys.argv[0]))
 
-def parse_file(faf):
-    with open(faf, "r") as f:
-        Parser(f)
+def parse_file(filename):
+    with open(filename, "r") as f:
+        parser = Parser(f)
+        parser.parse()
+        parser.write()
 
 def main_loop(argv=None):
     if argv is None:
@@ -77,14 +78,13 @@ def main_loop(argv=None):
 
     files_and_folders = args["<file_or_folder>"]
 
-    pool = mp.Pool()
-
     for faf in files_and_folders:
         if osp.isfile(faf):
             parse_file(faf)
         elif osp.isdir(faf):
             for entry in os.listdir(faf):
                 path = osp.join(faf, entry)
+
                 valid_file = osp.isfile(path) and\
                         osp.splitext(path)[-1] == osp.extsep + ext
                 valid_folder = recursive and osp.isdir(path)

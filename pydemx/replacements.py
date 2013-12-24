@@ -38,12 +38,12 @@ class Replacement(dict):
         if log.getEffectiveLevel() <= logging.DEBUG:
             log.debug("Creating replacement {}.".format(name))
         self.name = name
-        self.storage = {}
-        self.default = default
+        if default is not None or not hasattr(self, "default"):
+            self.default = default
         super(Replacement, self).__init__()
 
     def __getitem__(self, key):
-        return self.storage.get(key, self.default)
+        return self.get(key, self.default)
 
     def __repr__(self):
         return pf(super(Replacement, self).__repr__()) + " | " +\

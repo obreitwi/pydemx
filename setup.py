@@ -12,7 +12,8 @@ setup(
             "console_scripts" : [
                     "pydemx = pydemx.main:main_loop"
                 ]
-            }
+            },
+        zip_safe=True,
     )
 
 

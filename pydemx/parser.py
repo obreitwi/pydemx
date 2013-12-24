@@ -68,15 +68,17 @@ class Parser(object):
         self.log("Reading file..")
         self.skeleton = skeleton_file
         self._setup_replacements()
-        self._parse_file()
 
 
     def log(self, msg, level="info"):
         for line in msg.split("\n"):
             getattr(log, level)("{}: {}".format(self.name, line))
 
+    def write(self, filename=None):
+        self._write_output(filename=filename)
+        self._check_unused_replacements()
 
-    def _parse_file(self):
+    def parse(self):
         self.skeleton.seek(0)
         self._extract_magic_line()
         self._read_configuration()
@@ -84,10 +86,7 @@ class Parser(object):
         self._read_replacements()
         self._prepare_replacements()
         if log.getEffectiveLevel() <= logging.DEBUG:
-            self.log(pf(self.replacements), level="debug")
-        self._write_output()
-        self._check_unused_replacements()
-
+            self.log(pf(self.replacement_t.instances), level="debug")
 
     def _read_replacements(self):
         """
@@ -101,9 +100,7 @@ class Parser(object):
                         line.strip(os.linesep)), level="debug")
                 for match in self.matcher_replacement.finditer(line):
                     gd = match.groupdict()
-                    if gd["default"] is not None:
-                        self.replacement_type(gd["name"]).default =\
-                                gd["default"]
+                    self.replacement_t(**gd)
 
                 self.regular_text.write(line)
                 continue
@@ -119,19 +116,19 @@ class Parser(object):
                 # there is a regular replacement here, dont delete the prefix
                 if match_info["key"] is None:
                     # create a new replacement with the corresponding default
-                    self.replacement_type(match_info["name"], new_block)
+                    self.replacement_t(match_info["name"], new_block)
 
                     # and insert a placeholder indicating its position in the
                     # regular text
                     self.regular_text.write(self.format_replacement.format(
                         name=match_info["name"]))
                 else:
-                    self.replacements[match_info["name"]][match_info["key"]] =\
+                    self.replacement_t(match_info["name"])[match_info["key"]] =\
                             new_block
 
             else:
                 # the block is python code to be executed
-                local_context = {"R": Replacement}
+                local_context = {"R": self.replacement_t}
                 compiled = compile(new_block, "<string>", "exec")
                 exec(compiled, {}, local_context)
 
@@ -150,7 +147,7 @@ class Parser(object):
         self.config = copy.deepcopy(self.default_configuration)
         config_context = {
                 "cfg" : self.config,
-                "R" : Replacement,
+                "R" : self.replacement_t,
             }
 
         self.config["filename"] = osp.splitext(self.skeleton.name)[0]
@@ -180,7 +177,7 @@ class Parser(object):
                     post=self.config["variable_post"],
                     sep=self.config["default_seperator"])
 
-        self.log("Replacement line: {}".format(replacement_line), level="debug")
+        self.log("self.replacement_t line: {}".format(replacement_line), level="debug")
         self.matcher_replacement = re.compile(replacement_line)
 
         format_encode = lambda x: x.replace("{", "{{").replace("}", "}}")
@@ -217,11 +214,10 @@ class Parser(object):
 
         return block_cache.getvalue()
 
-
     def _setup_replacements(self):
-        Replacement.clear_instances()
-        self.replacements = Replacement.instances
-
+        # TODO: Replace global type with specific instance
+        self.replacement_t = Replacement
+        self.replacement_t.clear_instances()
 
     def _extract_magic_line(self):
         sk = self.skeleton
@@ -250,10 +246,8 @@ class Parser(object):
             return matcher is not None and\
                     matcher.groupdict()["name"] is not None
 
-
     def _prepare_replacements(self):
         self.replacements_done = {}
-
 
     def get_replacement_for_match(self, match):
         # if there is a default section in the match, we need to add
@@ -266,23 +260,20 @@ class Parser(object):
             self._process_replacement(name)
         return self.replacements_done[name]
 
-
     def _process_replacement(self, name):
         self.log("Processing {}".format(name), level="debug")
         # to prevent loops when replacements reference each other
         # we insert None first (which will cause an error but not a deadlock)
         self.replacements_done[name] = None
         try:
-            raw_rep = self.replacements[name][self.config["key_func"]()]
+            raw_rep = self.replacement_t(name)[self.config["key_func"]()]
         except KeyError:
-            self.replacement_type(name)
             raw_rep = ""
 
         self.log(pf(raw_rep), level="debug")
 
         self.replacements_done[name] = self.matcher_replacement.sub(
                 self.get_replacement_for_match, raw_rep)
-
 
     def _write_output(self, filename=None):
         """
@@ -306,12 +297,11 @@ class Parser(object):
                 f.write(self.matcher_replacement.sub(
                     self.get_replacement_for_match, line))
 
-
     def _check_unused_replacements(self):
         if log.getEffectiveLevel() <= logging.DEBUG:
-            self.log(pf(self.replacements), level="debug")
+            self.log(pf(self.replacement_t.instances), level="debug")
             self.log(pf(self.replacements_done), level="debug")
-        for rep in self.replacements:
+        for rep in self.replacement_t.instances:
             if rep not in self.replacements_done:
                 self.log("Replacment \"{}\" defined but not used.".format(rep),
                         level="warn")
