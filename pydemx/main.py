@@ -30,12 +30,12 @@ from pprint import pformat as pf
 
 from .parser import Parser
 from . import logcfg
-log = logcfg.log
+from .logcfg import log
 
 raw_docstring = """
 
 Usage:
-    {prog} [-v] [-r] [-c] [-e <ext>] <file_or_folder>...
+    {prog} [options] <file_or_folder>...
 
 Agruments:
     <file_or_folder>
@@ -43,9 +43,6 @@ Agruments:
         {prog} converts all `.skel` files contained within it.
 
 Options:
-    -v --verbose
-        Verbose output.
-
     -r --recursive
         Recurse into subfolders of specified folders. Does NOT recurse files.
 
@@ -54,8 +51,15 @@ Options:
         that of the original skeleton file with its extension popped. (Mostly
         used for testing purposes.)
 
+    -k --key-value <key>
+        Overwrite the key-value returned by the key-function.
+
     -e --extension <ext>
         Specify a different extention for skeleton files. [default: skel]
+
+    -v --verbose
+        Verbose (debug) output.
+
 """
 
 
@@ -69,6 +73,10 @@ def parse_file(filename, args):
         parser = Parser(f)
         parser.config()
         parser.parse()
+        key_value = args["--key-value"]
+        if key_value is not None:
+            log.info("Setting key-value to: {}".format(key_value))
+            parser.config["key_func"] = lambda:key_value
         kwargs ={}
         if current_folder:
             kwargs["filename"] = osp.splitext(filename)[0]
@@ -87,7 +95,8 @@ def main_loop(argv=None):
     ext = args["--extension"]
     recursive = args["--recursive"]
 
-    files_and_folders = args["<file_or_folder>"]
+    files_and_folders = []
+    files_and_folders.extend(args["<file_or_folder>"])
 
     for faf in files_and_folders:
         if osp.isfile(faf):

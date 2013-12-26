@@ -1,0 +1,24 @@
+#>>>
+#>>># 
+# cfg["filename"] = "testing_example"
+#>>>
+
+This is a {{testcase}}.
+
+#>>>
+# r = R("testcase", "default case")
+# r["juno"] = "special case"
+# R("thisisnotused")
+#>>>
+#>>> repsection
+This is a whole replacement block (its default section).
+#>>> repsection @ host01
+This is a whole specific replacement section for a certain key value.
+
+With multilines and all.
+#>>>
+
+A replacement with a {{simple:default value}}
+This is the regular end of the file.
+Note that there are no other values defined for the simple replacement.
+

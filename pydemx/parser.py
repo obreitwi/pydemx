@@ -47,7 +47,7 @@ class Parser(object):
             # ending.
             "filename" : None,
             # If not specified will be the current folder
-            "folder" : ".",
+            "folder" : None,
             "key_func" : socket.gethostname,
             "variable_pre" : r"{{",
             "variable_post" : r"}}",
@@ -80,8 +80,12 @@ class Parser(object):
             Write the output file.
         """
         assert self.read_config, "The skeleton file has not been parsed yet."
+        self._get_key_value()
         self._write_output(filename=filename)
         self._check_unused_replacements()
+
+    def _get_key_value(self):
+        self.key_value = self.config["key_func"]()
 
     def config(self):
         """
@@ -91,7 +95,7 @@ class Parser(object):
         self._extract_magic_line()
         self._read_configuration()
         self._filepos_after_config = self.skeleton.tell()
-        self.read_config = True 
+        self.read_config = True
 
     def parse(self):
         """
@@ -167,6 +171,9 @@ class Parser(object):
 
         config_block = self._read_block(delete_prefix=True)
         self.config = copy.deepcopy(self.default_configuration)
+
+        self._set_default_config()
+
         config_context = {
                 "cfg" : self.config,
                 "R" : self.replacement_t,
@@ -180,6 +187,8 @@ class Parser(object):
         if log.getEffectiveLevel() <= logging.DEBUG:
             log.debug(self.prefix_log(pf(self.config)))
 
+    def _set_default_config(self):
+        self.config["folder"] = osp.dirname(osp.abspath(self.name))
 
     def _create_utils(self):
         """
@@ -247,14 +256,19 @@ class Parser(object):
         sk.seek(0)
         self.raw_magic_line = sk.readline().strip(os.linesep)
 
+        pos_second_line = sk.tell()
         # the second line has to contain the magic line and the prefix
         second_line = sk.readline().strip(os.linesep)
 
-        if not self.is_magic_line(second_line):
-            log.error(self.prefix_log(
-                "Second line does not start with the magic line!"))
-
-        self.meta_prefix = second_line[len(self.raw_magic_line):]
+        if not self.is_magic_line(second_line)\
+                or len(second_line) == len(self.raw_magic_line):
+            log.warn(self.prefix_log("Second line does not define prefix!"))
+            self.meta_prefix = ""
+            # since we saw no prefix the second line already is part of the
+            # configuration block -> rewind!
+            sk.seek(pos_second_line)
+        else:
+            self.meta_prefix = second_line[len(self.raw_magic_line):]
 
 
     def is_magic_line(self, line):
@@ -289,7 +303,7 @@ class Parser(object):
         # we insert None first (which will cause an error but not a deadlock)
         self.replacements_done[name] = None
         try:
-            raw_rep = self.replacement_t(name)[self.config["key_func"]()]
+            raw_rep = self.replacement_t(name)[self.key_value]
         except KeyError:
             raw_rep = ""
 
