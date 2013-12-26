@@ -34,7 +34,7 @@ import logging
 
 from .logcfg import log
 from . import misc as m
-from .replacements import Replacement
+from .replacements import make_replacement_t
 
 
 class Parser(object):
@@ -65,28 +65,50 @@ class Parser(object):
         """
         self.name = skeleton_file.name if hasattr(skeleton_file, "name")\
                     else "file"
-        self.log("Reading file..")
+        log.info(self.prefix_log("Reading file.."))
         self.skeleton = skeleton_file
         self._setup_replacements()
+        self.read_config = False
+        self.parsed_file = False
 
-
-    def log(self, msg, level="info"):
-        for line in msg.split("\n"):
-            getattr(log, level)("{}: {}".format(self.name, line))
+    def prefix_log(self, msg):
+        return "\n".join(("{}: {}".format(self.name, line)\
+                for line in msg.split("\n")))
 
     def write(self, filename=None):
+        """
+            Write the output file.
+        """
+        assert self.read_config, "The skeleton file has not been parsed yet."
         self._write_output(filename=filename)
         self._check_unused_replacements()
 
-    def parse(self):
+    def config(self):
+        """
+            Read the configuration as it is present in the skeleton file.
+        """
         self.skeleton.seek(0)
         self._extract_magic_line()
         self._read_configuration()
+        self._filepos_after_config = self.skeleton.tell()
+        self.read_config = True 
+
+    def parse(self):
+        """
+            Parse the file with the configuration present.
+
+            The user may want to modify the configuration after it has been
+            read, hence there is a separate parse function.
+        """
+        assert self.read_config, "The configuration has to be read prior to "\
+                "parsing."
+        self.skeleton.seek(self._filepos_after_config)
         self._create_utils()
         self._read_replacements()
         self._prepare_replacements()
         if log.getEffectiveLevel() <= logging.DEBUG:
-            self.log(pf(self.replacement_t.instances), level="debug")
+            log.debug(self.prefix_log(pf(self.replacement_t.instances)))
+        self.parsed_file = True
 
     def _read_replacements(self):
         """
@@ -96,8 +118,8 @@ class Parser(object):
         for line in iter(self.skeleton.readline, ''):
             if not self.is_magic_line(line):
                 if log.getEffectiveLevel() <= logging.DEBUG:
-                    self.log("Non-special line: {}".format(
-                        line.strip(os.linesep)), level="debug")
+                    log.debug(self.prefix_log("Non-special line: {}".format(
+                        line.strip(os.linesep))))
                 for match in self.matcher_replacement.finditer(line):
                     gd = match.groupdict()
                     self.replacement_t(**gd)
@@ -156,7 +178,7 @@ class Parser(object):
         exec(config_block_code, {}, config_context)
 
         if log.getEffectiveLevel() <= logging.DEBUG:
-            self.log(pf(self.config), level="debug")
+            log.debug(self.prefix_log(pf(self.config)))
 
 
     def _create_utils(self):
@@ -168,7 +190,7 @@ class Parser(object):
             "(\s*{designator}\s*(?P<key>\S+))?)?$".format(
                 len_magic_line=len(self.raw_magic_line),
                 designator=self.config["key_designator"])
-        self.log("Magic line: {}".format(magic_line), level="debug")
+        log.debug(self.prefix_log("Magic line: {}".format(magic_line)))
         self.matcher_magic_line = re.compile(magic_line)
 
         replacement_line =\
@@ -177,23 +199,25 @@ class Parser(object):
                     post=self.config["variable_post"],
                     sep=self.config["default_seperator"])
 
-        self.log("self.replacement_t line: {}".format(replacement_line), level="debug")
+        log.debug(self.prefix_log("Replacement line: {}".format(
+            replacement_line)))
         self.matcher_replacement = re.compile(replacement_line)
 
         format_encode = lambda x: x.replace("{", "{{").replace("}", "}}")
         self.format_replacement = "{pre}{{name}}{post}".format(
                     pre=format_encode(self.config["variable_pre"]),
                     post=format_encode(self.config["variable_post"]))
-        self.log("Format-replacement: {}".format(self.format_replacement),
-                level="debug")
+        log.debug(self.prefix_log(
+            "Format-replacement: {}".format(self.format_replacement)))
 
 
     def _read_block(self, delete_prefix=False):
         """
             Assumes the block starts at the current line.
         """
-        self.log("Reading block starting at position: {}".format(
-            self.skeleton.tell()), level="debug")
+        log.debug(self.prefix_log(
+            "Reading block starting at position: {}".format(
+                self.skeleton.tell())))
         block_cache = StringIO.StringIO()
 
         # since the user can omitt the last line if it is
@@ -215,8 +239,7 @@ class Parser(object):
         return block_cache.getvalue()
 
     def _setup_replacements(self):
-        # TODO: Replace global type with specific instance
-        self.replacement_t = Replacement
+        self.replacement_t = make_replacement_t()
         self.replacement_t.clear_instances()
 
     def _extract_magic_line(self):
@@ -228,8 +251,8 @@ class Parser(object):
         second_line = sk.readline().strip(os.linesep)
 
         if not self.is_magic_line(second_line):
-            self.log("Second line does not start with the magic line!",
-                    level="error")
+            log.error(self.prefix_log(
+                "Second line does not start with the magic line!"))
 
         self.meta_prefix = second_line[len(self.raw_magic_line):]
 
@@ -261,7 +284,7 @@ class Parser(object):
         return self.replacements_done[name]
 
     def _process_replacement(self, name):
-        self.log("Processing {}".format(name), level="debug")
+        log.debug(self.prefix_log("Processing {}".format(name)))
         # to prevent loops when replacements reference each other
         # we insert None first (which will cause an error but not a deadlock)
         self.replacements_done[name] = None
@@ -270,10 +293,10 @@ class Parser(object):
         except KeyError:
             raw_rep = ""
 
-        self.log(pf(raw_rep), level="debug")
+        log.debug(self.prefix_log(pf(raw_rep)))
 
         self.replacements_done[name] = self.matcher_replacement.sub(
-                self.get_replacement_for_match, raw_rep)
+                self.get_replacement_for_match, str(raw_rep))
 
     def _write_output(self, filename=None):
         """
@@ -285,24 +308,24 @@ class Parser(object):
 
         filename = osp.expandvars(osp.expanduser(filename))
 
-        self.log("Writing: {}".format(filename))
+        log.info(self.prefix_log("Writing: {}".format(filename)))
         with open(filename, "w") as f:
             self.regular_text.seek(0)
             for line in iter(self.regular_text.readline, ''):
                 if log.getEffectiveLevel() <= logging.DEBUG:
-                    self.log("Current line: {}".format(line.strip(os.linesep)),
-                            level="debug")
+                    log.debug(self.prefix_log(
+                        "Current line: {}".format(line.strip(os.linesep))))
                     for match in self.matcher_replacement.finditer(line):
-                        self.log(pf(match.groupdict()), level="debug")
+                        log.debug(self.prefix_log(pf(match.groupdict())))
                 f.write(self.matcher_replacement.sub(
                     self.get_replacement_for_match, line))
 
     def _check_unused_replacements(self):
         if log.getEffectiveLevel() <= logging.DEBUG:
-            self.log(pf(self.replacement_t.instances), level="debug")
-            self.log(pf(self.replacements_done), level="debug")
+            log.debug(self.prefix_log(pf(self.replacement_t.instances)))
+            log.debug(self.prefix_log(pf(self.replacements_done)))
         for rep in self.replacement_t.instances:
             if rep not in self.replacements_done:
-                self.log("Replacment \"{}\" defined but not used.".format(rep),
-                        level="warn")
+                log.warn(self.prefix_log(
+                    "Replacement \"{}\" defined but not used.".format(rep)))
 

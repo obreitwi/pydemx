@@ -35,12 +35,12 @@ log = logcfg.log
 raw_docstring = """
 
 Usage:
-    {prog} [-v] [-r] [-e <ext>] <file_or_folder>...
+    {prog} [-v] [-r] [-c] [-e <ext>] <file_or_folder>...
 
 Agruments:
     <file_or_folder>
-        If file it will be converted; if folder, convert all `.skel` files in
-        it.
+        If argument is a filename it will be converted; if it is a foldername,
+        {prog} converts all `.skel` files contained within it.
 
 Options:
     -v --verbose
@@ -48,6 +48,11 @@ Options:
 
     -r --recursive
         Recurse into subfolders of specified folders. Does NOT recurse files.
+
+    -c --current-folder
+        Force output into the current folder. The resulting filename will be
+        that of the original skeleton file with its extension popped. (Mostly
+        used for testing purposes.)
 
     -e --extension <ext>
         Specify a different extention for skeleton files. [default: skel]
@@ -57,11 +62,17 @@ Options:
 def get_updated_docstring():
     return raw_docstring.format(prog=osp.basename(sys.argv[0]))
 
-def parse_file(filename):
+def parse_file(filename, args):
+    current_folder = args["--current-folder"]
+
     with open(filename, "r") as f:
         parser = Parser(f)
+        parser.config()
         parser.parse()
-        parser.write()
+        kwargs ={}
+        if current_folder:
+            kwargs["filename"] = osp.splitext(filename)[0]
+        parser.write(**kwargs)
 
 def main_loop(argv=None):
     if argv is None:
@@ -80,7 +91,7 @@ def main_loop(argv=None):
 
     for faf in files_and_folders:
         if osp.isfile(faf):
-            parse_file(faf)
+            parse_file(faf, args)
         elif osp.isdir(faf):
             for entry in os.listdir(faf):
                 path = osp.join(faf, entry)

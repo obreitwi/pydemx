@@ -50,3 +50,9 @@ class Replacement(dict):
                 pf("default: {}".format(self.default))
 
 
+def make_replacement_t():
+    """
+        Generate and return a new replacement type with own registry.
+    """
+    return type("Replacement", (Replacement,), {"_instances" : {}})
+

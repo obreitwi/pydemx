@@ -1,6 +1,5 @@
 PYthon DEMultipleXer
 ========
-*(Still work in progress!)*
 
 Whenever working on multiple computers, many files (configuration files etc.)
 are largely the same except for small differences. Not all programs allow their

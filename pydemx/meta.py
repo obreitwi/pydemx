@@ -46,6 +46,6 @@ class Singleton(type):
         cls._instances[name] = instance
 
     def clear_instances(cls):
-        cls_instances = {}
+        cls._instances = {}
 
 

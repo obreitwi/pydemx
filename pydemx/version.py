@@ -21,8 +21,5 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .version import __version__
-
-from .logcfg import log
-from .parser import Parser
+__version__ = (0, 0, 1)
 
