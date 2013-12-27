@@ -9,7 +9,7 @@ execfile(osp.join(osp.dirname(osp.abspath(__file__)), "pydemx", "version.py"))
 setup(
         name="PyDeMX",
         version=".".join(map(str, __version__)),
-        install_requires=["docopt>=0.5"],
+        install_requires=["docopt>=0.5", "PyYAML>=3.10"],
         packages=["pydemx"],
         url="http://github.com/obreitwi/pydemx",
         license="MIT",

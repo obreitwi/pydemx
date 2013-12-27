@@ -21,28 +21,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .logcfg import log
-import os
-import os.path as osp
+import yaml
+import numpy as np
 
-from contextlib import contextmanager
+try:
+    from yaml import CLoader as YamlLoader, CDumper as YamlDumper
+except ImportError:
+    from yaml import YamlLoader, YamlDumper
 
-@contextmanager
-def save_filepos(fileobject):
-    """
-        Saves and resets the current file position on the passed file object.
-    """
-    filepos = fileobject.tell()
-    yield fileobject
-    fileobject.seek(filepos)
-
-def ensure_folder_exists(path):
-    try:
-        os.makedirs(path)
-    except OSError:
-        pass
-
-def setifnone(dct, key, value):
-    if dct.get(key, None) is None:
-        dct[key] = value
+def load(obj):
+    "Load yaml from object."
+    return yaml.load(obj, Loader=YamlLoader)
 

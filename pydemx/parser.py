@@ -32,9 +32,12 @@ import os
 import os.path as osp
 import logging
 
+import yaml
+
 from .logcfg import log
 from . import misc as m
 from .replacements import make_replacement_t
+from . import io
 
 
 class Parser(object):
@@ -56,6 +59,9 @@ class Parser(object):
             "default_seperator" : ":",
             "key_designator" : "@", # make sure this is no python.re special
                                     # character
+            # external configuration and if we look in upper directories
+            "ext_config_filename" : "config.skel.yaml",
+            "ext_config_check_upwards" : True,
         }
 
     def __init__(self, skeleton_file):
@@ -116,6 +122,11 @@ class Parser(object):
             log.debug(self.prefix_log(pf(self.replacement_t.instances)))
         self.parsed_file = True
 
+    def get_default_config(self):
+        return {k:copy.deepcopy(v)
+                for k,v in self.default_configuration.iteritems()
+                if v is not None}
+
     def _read_replacements(self):
         """
             Read all special blocks.
@@ -172,9 +183,7 @@ class Parser(object):
                 # break
 
         config_block = self._read_block(delete_prefix=True)
-        self.config = copy.deepcopy(self.default_configuration)
-
-        self._set_default_config()
+        self.config = self.get_default_config()
 
         config_context = {
                 "cfg" : self.config,
@@ -184,12 +193,47 @@ class Parser(object):
         config_block_code = compile(config_block, "<string>", "exec")
         exec(config_block_code, {}, config_context)
 
+        self._read_external_config()
+        self._set_default_config()
+
         if log.getEffectiveLevel() <= logging.DEBUG:
             log.debug(self.prefix_log(pf(self.config)))
 
     def _set_default_config(self):
-        self.config["folder"] = osp.dirname(osp.abspath(self.name))
-        self.config["filename"] = osp.splitext(self.skeleton.name)[0]
+        m.setifnone(self.config, "folder", osp.dirname(osp.abspath(self.name)))
+        m.setifnone(self.config, "filename",
+                osp.splitext(self.skeleton.name)[0])
+
+    def _read_external_config(self):
+        possible_folder = osp.abspath(self.name)
+
+        while len(possible_folder) > 1:
+            possible_folder = osp.dirname(possible_folder)
+            log.debug("Checking for external configuration: {}".format(
+                possible_folder))
+
+            ext_cfg_filename = \
+                osp.join(possible_folder, self.config["ext_config_filename"])
+
+            # only go up if the user has specified it
+            if not osp.isfile(ext_cfg_filename)\
+                    and self.config["ext_config_check_upwards"]:
+                continue
+            else:
+                with open(ext_cfg_filename, "r") as f:
+                    ext_config = io.load(f)
+                log.info("Reading external configuration: {}".format(
+                    ext_cfg_filename))
+
+                if log.getEffectiveLevel() <= logging.DEBUG:
+                    log.debug("External config:\n{}".format(pf(ext_config)))
+
+                # we want local configuration to take precedence over the
+                # external (folder-wide) one
+                ext_config.update(self.config)
+                self.config = ext_config
+
+            break
 
     def _create_utils(self):
         """
@@ -329,7 +373,7 @@ class Parser(object):
         with open(filename, "w") as f:
             self.regular_text.seek(0)
             for line in iter(self.regular_text.readline, ''):
-                if log.getEffectiveLevel() <= logging.DEBUG:
+                if log.getEffectiveLevel() <= logging.DEBUG and False:
                     log.debug(self.prefix_log(
                         "Current line: {}".format(line.strip(os.linesep))))
                     for match in self.matcher_replacement.finditer(line):
@@ -337,9 +381,8 @@ class Parser(object):
                 f.write(self.matcher_replacement.sub(
                     self.get_replacement_for_match, line))
 
-        permissions = self.config["permissions"]
-        if permissions is not None:
-            os.chmod(filename, int(permissions))
+        if "permissions" in self.config:
+            os.chmod(filename, int(self.config["permissions"]))
 
     def _check_unused_replacements(self):
         if log.getEffectiveLevel() <= logging.DEBUG:
