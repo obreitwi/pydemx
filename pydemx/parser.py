@@ -181,8 +181,6 @@ class Parser(object):
                 "R" : self.replacement_t,
             }
 
-        self.config["filename"] = osp.splitext(self.skeleton.name)[0]
-
         config_block_code = compile(config_block, "<string>", "exec")
         exec(config_block_code, {}, config_context)
 
@@ -191,6 +189,7 @@ class Parser(object):
 
     def _set_default_config(self):
         self.config["folder"] = osp.dirname(osp.abspath(self.name))
+        self.config["filename"] = osp.splitext(self.skeleton.name)[0]
 
     def _create_utils(self):
         """
@@ -323,6 +322,8 @@ class Parser(object):
                     self.config["filename"])
 
         filename = osp.expandvars(osp.expanduser(filename))
+
+        m.ensure_folder_exists(osp.dirname(filename))
 
         log.info(self.prefix_log("Writing: {}".format(filename)))
         with open(filename, "w") as f:

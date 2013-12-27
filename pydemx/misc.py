@@ -22,6 +22,8 @@
 # THE SOFTWARE.
 
 from .logcfg import log
+import os
+import os.path as osp
 
 from contextlib import contextmanager
 
@@ -33,4 +35,10 @@ def save_filepos(fileobject):
     filepos = fileobject.tell()
     yield fileobject
     fileobject.seek(filepos)
+
+def ensure_folder_exists(path):
+    try:
+        os.makedirs(path)
+    except OSError:
+        pass
 
