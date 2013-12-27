@@ -1,6 +1,7 @@
 #>>>
 #>>># 
 # cfg["filename"] = "testing_example"
+# cfg["permissions"] = 0744
 #>>>
 
 This is a {{testcase}}.

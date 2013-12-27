@@ -48,6 +48,8 @@ class Parser(object):
             "filename" : None,
             # If not specified will be the current folder
             "folder" : None,
+            # file permissions after writing to it
+            "permissions" : None,
             "key_func" : socket.gethostname,
             "variable_pre" : r"{{",
             "variable_post" : r"}}",
@@ -333,6 +335,10 @@ class Parser(object):
                         log.debug(self.prefix_log(pf(match.groupdict())))
                 f.write(self.matcher_replacement.sub(
                     self.get_replacement_for_match, line))
+
+        permissions = self.config["permissions"]
+        if permissions is not None:
+            os.chmod(filename, int(permissions))
 
     def _check_unused_replacements(self):
         if log.getEffectiveLevel() <= logging.DEBUG:
