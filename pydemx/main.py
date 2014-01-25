@@ -62,6 +62,8 @@ Options:
 
 """
 
+from .version import __version__
+
 
 def get_updated_docstring():
     return raw_docstring.format(prog=osp.basename(sys.argv[0]))
@@ -86,7 +88,8 @@ def main_loop(argv=None):
     if argv is None:
         argv = sys.argv
 
-    args = docopt.docopt(get_updated_docstring(), argv=argv[1:])
+    args = docopt.docopt(get_updated_docstring(), argv=argv[1:],
+            version=".".join(map(str, __version__)))
     if args["--verbose"]:
         logcfg.make_verbose()
         log.debug(pf(args))
