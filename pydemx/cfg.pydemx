@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
+import socket
+
+# Default configuration
+# A configuration file always has to specify a dictionary called "cfg"
+
+cfg = {
+        # If not specified will be the original file filename without
+        # ending.
+        # This should usually not be defined in a global cfg.pydemx
+        "filename" : None,
+        # If not specified will be the current folder
+        "folder" : None,
+        # file permissions after writing to it
+        "permissions" : None,
+        "key_func" : socket.gethostname,
+        "replacement_prefix" : r"{{",
+        "replacement_suffix" : r"}}",
+        "default_seperator" : ":",
+        "key_designator" : "@", # make sure this is no python.re special
+                                # character
+        # external configuration and if we look in upper directories
+        "ext_config_filename" : "config.skel.yaml",
+        "ext_config_check_upwards" : True,
+    }
+

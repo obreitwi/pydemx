@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-# Copyright (c) 2013 Oliver Breitwieser
+# Copyright (c) 2013-2014 Oliver Breitwieser
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,11 +21,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .logcfg import log
+import logging
 import os
 import os.path as osp
-
+from pprint import pformat as pf
 from contextlib import contextmanager
+
+from .logcfg import log
 
 @contextmanager
 def save_filepos(fileobject):
@@ -45,4 +47,19 @@ def ensure_folder_exists(path):
 def setifnone(dct, key, value):
     if dct.get(key, None) is None:
         dct[key] = value
+
+def execute_code(lines, local_context=None):
+    if local_context is None:
+        local_context = {}
+    # if log.getEffectiveLevel() <= logging.DEBUG:
+        # log.debug("Supplied lines:" + os.linesep + "{}".format(pf(lines)))
+    combined_lines = os.linesep.join(lines) + os.linesep
+    if log.getEffectiveLevel() <= logging.DEBUG:
+        log.debug("Compiling:"+os.linesep+combined_lines)
+        log.debug("Context: {}".format(pf(local_context)))
+
+    compiled = compile(combined_lines, "<string>", "exec")
+    if log.getEffectiveLevel() <= logging.DEBUG:
+        log.debug("Type: {}".format(type(compiled)))
+    exec(compiled, {}, local_context)
 

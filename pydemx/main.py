@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-# Copyright (c) 2013 Oliver Breitwieser
+# Copyright (c) 2013-2014 Oliver Breitwieser
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,14 @@ import sys
 import os
 import os.path as osp
 import docopt
+import logging
 from pprint import pformat as pf
 
+from .config import Config
+from .tokenizer import Tokenizer
 from .parser import Parser
+from .generator import Generator
+from . import logcfg
 from . import logcfg
 from .logcfg import log
 
@@ -68,7 +73,7 @@ from .version import __version__
 def get_updated_docstring():
     return raw_docstring.format(prog=osp.basename(sys.argv[0]))
 
-def parse_file(filename, args):
+def old_parse_file(filename, args):
     current_folder = args["--current-folder"]
 
     with open(filename, "r") as f:
@@ -83,6 +88,37 @@ def parse_file(filename, args):
         if current_folder:
             kwargs["filename"] = osp.splitext(filename)[0]
         parser.write(**kwargs)
+
+def parse_file(filename, args):
+    fileformatter = logging.Formatter("%(asctime)s {}: "
+        "%(message)s".format(filename), datefmt="%y-%m-%d %H:%M:%S")
+    log.handlers[0].setFormatter(fileformatter)
+
+    with open(filename, "r") as f:
+        tokenizer = Tokenizer(f)
+
+    cfg = Config(filename, tokenizer.code_blocks[0])
+    if cfg["folder"] is None or args["--current_folder"]:
+        cfg["folder"] = osp.dirname(osp.abspath(filename))
+
+    if cfg["filename"] is None:
+        cfg["filename"] = osp.splitext(filename)[0]
+
+    key_value = args["--key-value"] 
+    if key_value is not None:
+        log.info("Setting key-value to: {}".format(key_value))
+        parser.config["key_func"] = lambda:key_value
+
+    parser = Parser(cfg,
+            tokenizer.text_blocks,
+            tokenizer.repl_blocks,
+            tokenizer.code_blocks)
+
+    generator = Generator(cfg, parser.text_blocks, parser.replacement_t)
+    generator.write()
+
+    log.handlers[0].setFormatter(logcfg.formatter_in_use)
+
 
 def main_loop(argv=None):
     if argv is None:

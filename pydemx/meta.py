@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-# Copyright (c) 2013 Oliver Breitwieser
+# Copyright (c) 2013-2014 Oliver Breitwieser
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,15 +21,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import logging
 
 from .logcfg import log
-
 
 class Singleton(type):
     _instances = {}
 
     def __call__(cls, name, *args, **kwargs):
-        log.debug("Calling {}".format(name))
+        log.debug("Getting reqplacement {}".format(name))
         if name in cls.instances:
             instance = cls._instances[name]
             instance.__init__(name, *args, **kwargs)

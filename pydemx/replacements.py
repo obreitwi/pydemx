@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-# Copyright (c) 2013 Oliver Breitwieser
+# Copyright (c) 2013-2014 Oliver Breitwieser
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
 
 from pprint import pformat as pf
 import logging
+import re
 
 from .logcfg import log
 from .meta import Singleton
@@ -35,8 +36,6 @@ class Replacement(dict):
     __metaclass__ = Singleton
 
     def __init__(self, name, default=None):
-        if log.getEffectiveLevel() <= logging.DEBUG:
-            log.debug("Creating replacement {}.".format(name))
         self.name = name
         if default is not None or not hasattr(self, "default"):
             self.default = default
@@ -49,8 +48,29 @@ class Replacement(dict):
         return pf(super(Replacement, self).__repr__()) + " | " +\
                 pf("default: {}".format(self.default))
 
+    @classmethod
+    def create_utils(cls, prefix, suffix, seperator):
+        """
+            Creates the appropriate matchers from the configuration as well as
+            formatter strings.
+        """
+        replacement_line =\
+                r"{pre}(?P<name>\S+?)({sep}(?P<default>.+?))?{post}".format(
+                    pre=prefix, post=suffix, sep=seperator)
 
-def make_replacement_t():
+        log.debug("Replacement line: {}".format(
+            replacement_line))
+        cls.matcher = re.compile(replacement_line)
+
+        format_encode = lambda x: x.replace("{", "{{").replace("}", "}}")
+        cls.format = "{pre}{{name}}{post}".format(
+                    pre=format_encode(prefix),
+                    post=format_encode(suffix))
+        log.debug(
+            "Format-replacement: {}".format(cls.format))
+
+
+def make_replacement_t(**cfg):
     """
         Generate and return a new replacement type with own registry.
     """

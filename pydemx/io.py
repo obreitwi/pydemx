@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-# Copyright (c) 2013 Oliver Breitwieser
+# Copyright (c) 2013-2014 Oliver Breitwieser
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
 
 import yaml
 import numpy as np
+import os
 
 try:
     from yaml import CLoader as YamlLoader, CDumper as YamlDumper
@@ -32,4 +33,21 @@ except ImportError:
 def load(obj):
     "Load yaml from object."
     return yaml.load(obj, Loader=YamlLoader)
+
+def write(file,  obj):
+    yaml.dump(obj, file, Dumper=YamlDumper)
+
+def readline(file):
+    """
+        Reads a line from file and strips line endings.
+
+        Returns None if EOF is reached.
+    """
+    line = file.readline()
+    if len(line) > 0:
+        # we still have something in the file (be it line endings)
+        return line.strip(os.linesep)
+    else:
+        return None
+
 
