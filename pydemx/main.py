@@ -45,7 +45,7 @@ Usage:
 Agruments:
     <file_or_folder>
         If argument is a filename it will be converted; if it is a foldername,
-        {prog} converts all `.skel` files contained within it.
+        {prog} converts all `.pydemx` files contained within it.
 
 Options:
     -r --recursive
@@ -53,14 +53,14 @@ Options:
 
     -c --current-folder
         Force output into the current folder. The resulting filename will be
-        that of the original skeleton file with its extension popped. (Mostly
-        used for testing purposes.)
+        that of the original file with its extension popped. (Mostly used for
+        testing purposes.)
 
     -k --key-value <key>
         Overwrite the key-value returned by the key-function.
 
     -e --extension <ext>
-        Specify a different extention for skeleton files. [default: skel]
+        Specify a different extention for input files. [default: .pydemx]
 
     -v --verbose
         Verbose (debug) output.
@@ -145,7 +145,7 @@ def main_loop(argv=None):
                 path = osp.join(faf, entry)
 
                 valid_file = osp.isfile(path) and\
-                        osp.splitext(path)[-1] == osp.extsep + ext
+                        osp.splitext(path)[-1] == ext
                 valid_folder = recursive and osp.isdir(path)
 
                 if valid_file or valid_folder:
