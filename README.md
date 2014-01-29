@@ -5,7 +5,7 @@ Whenever working on multiple computers, many files (configuration files etc.)
 are largely the same except for small differences. Not all programs allow their
 configuration files to have hostname- (or whatever) dependent sections.
 
-This small script addresses that issue: You can define a single skeleton file
+This small script addresses that issue: You can define a single `.pydemx` file
 to use across all hosts that is compiled into a specific version upon invoking
 `pydemx`.
 
@@ -16,29 +16,29 @@ modified (it could also be the time of day etc).
 ## Basic functionality
 
 The core concept revolves around the notion of *replacement*-objects which are
-used as placeholder for the varying content in the skeleton file. They are
+used as placeholder for the varying content in the `.pydemx` file. They are
 basically dictionaries storing several `key -> value_string` pairs. Furthermore
 there is a *key-function* which -- when pydemx is run -- returns a specific
 `key` (e.g. the hostname of the current computer).
 
-The skeleton file is then parsed and each *replacement* replaced by its
+The `.pydemx` file is then parsed and each *replacement* replaced by its
 corresponding `value_string` that corresponds to the `key`.
 
-## Skeleton file syntax
+## `.pydemx` file syntax
 
 (Please see the [example](example/simple.skel) along with the description here.)
 
 ### Magic line
 
-The first line in every skeleton file defines the *magic line* that is used to
-identify special *blocks* of python code in the skeleton file that can be used
-to define replacments etc.
+The first line (apart from a possible shebang) in every `.pydemx` file defines
+the *magic line* that is used to identify special *blocks* of python code in the
+`.pydemx` file that can be used to define replacments etc.
 
 ### Prefix
 
-The second line in every skeleton file should consist of the *magic line*
+The second line in every `.pydemx` file should consist of the *magic line*
 defined on the first line plus a special *prefix* that usually is the comment
-string for the language the skeleton file is written for (`# ` for python, `-- `
+string for the language the `.pydemx` file is written for (`# ` for python, `-- `
 for haskell etc) so that synatx parser do not get confused by the added python
 code. In *code blocks* (see below) the prefix is deleted from each line before
 the python code is interpreted.
@@ -68,14 +68,14 @@ it returns the same dictionary-like object that can then have several
 
 #### Configuration block
 
-The first *code block* encountered in the skeleton file is called the
+The first *code block* encountered in the `.pydemx` file is called the
 *configuration block*. Along with the `R` object there is a `cfg` dictionary as
 well that can be used to overwrite/define certain configuration options. The
 most commonly used are `filename`/`folder` that define where the generated file
 should be placed.
 
 Everything can be customized, for instance how replacements appear in the
-skeleton file, what the default designator is and how replacement block
+`.pydemx` file, what the default designator is and how replacement block
 designates its key value.
 
 (TODO: Go into details here. --obreitwi, 26-12-13 12:21:28)

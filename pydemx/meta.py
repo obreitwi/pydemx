@@ -29,7 +29,7 @@ class Singleton(type):
     _instances = {}
 
     def __call__(cls, name, *args, **kwargs):
-        log.debug("Getting reqplacement {}".format(name))
+        log.debug("Getting replacement {}".format(name))
         if name in cls.instances:
             instance = cls._instances[name]
             instance.__init__(name, *args, **kwargs)

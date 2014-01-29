@@ -39,7 +39,9 @@ class Replacement(dict):
         self.name = name
         if default is not None or not hasattr(self, "default"):
             self.default = default
-        super(Replacement, self).__init__()
+        if getattr(self, "_initialized_once", False):
+            super(Replacement, self).__init__()
+            self.initialized_once= True
 
     def __getitem__(self, key):
         return self.get(key, self.default)

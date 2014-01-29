@@ -58,6 +58,11 @@ class Tokenizer(object):
     def __init__(self, file):
         log.debug("Tokenizing file.")
         file.seek(0)
+
+        # ignore a possible shebang
+        if not io.readline(file).startswith("#!"):
+            file.seek(0)
+
         self._extract_magic_line(file)
 
         self.repl_blocks = []

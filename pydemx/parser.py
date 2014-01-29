@@ -69,18 +69,30 @@ class Parser(object):
             self.read_replacements(tb.lines)
             match = self.matcher_repl_block_title.match(rb.title).groupdict()
 
+            log.debug("Match object for replacement block: {}".format(pf(match)))
+
             # if we haven't seen a replacement block yet, it should be inserted
             # into regular text where first defined
             if match["name"] not in known_repl_block_names:
+                known_repl_block_names.add(match["name"])
                 text_repl = self.replacement_t.format.format(name=match["name"])
+                if log.getEffectiveLevel() <= logging.DEBUG:
+                    log.debug("Text inserted for replacement block: {}".format(
+                        pf(text_repl)))
                 if rb.index > 0:
                     self.text_blocks[rb.index - 1].lines.append(text_repl)
                 else:
                     self.text_blocks[0].lines.insert(0, text_repl)
 
             repl = self.replacement_t(match["name"])
-            if "key" in match:
-                repl[match["key"]] = os.linesep.join(rb.lines)
+            combined_lines = os.linesep.join(rb.lines)
+            if match["key"] is not None:
+                repl[match["key"]] = combined_lines
+            else:
+                repl.default = combined_lines
+
+            if log.getEffectiveLevel() <= logging.DEBUG:
+                log.debug(pf(repl))
 
         # execute the code from code blocks
         # include a dummy cfg dict to be compatible with the first cfg block
