@@ -78,7 +78,8 @@ class Generator(object):
         """
             Write the generated text to the file specified by the cfg.
         """
-        filename = osp.join(self.cfg["folder"], self.cfg["filename"])
+        filename = osp.expanduser(osp.expandvars(
+            osp.join(self.cfg["folder"], self.cfg["filename"])))
         log.info("Writing to output file {}".format(filename))
 
         with open(filename, "w") as f:

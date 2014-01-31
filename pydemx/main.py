@@ -98,7 +98,7 @@ def parse_file(filename, args):
         tokenizer = Tokenizer(f)
 
     cfg = Config(filename, tokenizer.code_blocks[0])
-    if cfg["folder"] is None or args["--current_folder"]:
+    if cfg["folder"] is None or args["--current-folder"]:
         cfg["folder"] = osp.dirname(osp.abspath(filename))
 
     if cfg["filename"] is None:
