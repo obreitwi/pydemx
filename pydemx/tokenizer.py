@@ -60,7 +60,7 @@ class Tokenizer(object):
         file.seek(0)
 
         # ignore a possible shebang
-        if not io.readline(file).startswith("#!"):
+        if not io.readline(file).startswith("#!/"):
             file.seek(0)
 
         self._extract_magic_line(file)
