@@ -144,7 +144,6 @@ def main_loop(argv=None):
             for entry in os.listdir(faf):
                 path = osp.join(faf, entry)
 
-                print osp.splitext(path)
                 valid_file = osp.isfile(path)\
                     and osp.splitext(path)[-1] == ext\
                     and osp.basename(osp.splitext(path)[0]) != "cfg"
