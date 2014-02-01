@@ -21,21 +21,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import yaml
 import numpy as np
 import os
 
-try:
-    from yaml import CLoader as YamlLoader, CDumper as YamlDumper
-except ImportError:
-    from yaml import YamlLoader, YamlDumper
+# import yaml
+# try:
+    # from yaml import CLoader as YamlLoader, CDumper as YamlDumper
+# except ImportError:
+    # from yaml import YamlLoader, YamlDumper
 
-def load(obj):
-    "Load yaml from object."
-    return yaml.load(obj, Loader=YamlLoader)
+# def load(obj):
+    # "Load yaml from object."
+    # return yaml.load(obj, Loader=YamlLoader)
 
-def write(file,  obj):
-    yaml.dump(obj, file, Dumper=YamlDumper)
+# def write(file,  obj):
+    # yaml.dump(obj, file, Dumper=YamlDumper)
 
 def readline(file):
     """

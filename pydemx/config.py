@@ -31,6 +31,7 @@ from . import misc as m
 from .logcfg import log
 
 CONFIG_FILENAME = "cfg.pydemx"
+DEFAULT_SUFFIX = ".default"
 
 def load_config_from_path(path):
     with open(path, "r") as f:
@@ -79,14 +80,15 @@ class Config(object):
             reverse order (the higher they are in the filesystem, the earlier
             they are returned).
         """
+        path = osp.abspath(path)
         found_paths = []
         while osp.basename(path):
+            log.debug("Checking {}".format(path))
             path_cfg = osp.join(path, CONFIG_FILENAME)
 
             if osp.isfile(path_cfg):
                 found_paths.append(path_cfg)
-            else:
-                path = osp.dirname(path)
+            path = osp.dirname(path)
 
         for path_cfg in reversed(found_paths):
             yield load_config_from_path(path_cfg)
@@ -98,6 +100,7 @@ class Config(object):
         self._cfg[key] = value
 
 
-defaults = load_config(resource_string(__name__, CONFIG_FILENAME))
+defaults = load_config(resource_string(__name__, CONFIG_FILENAME
+    + DEFAULT_SUFFIX))
 
 

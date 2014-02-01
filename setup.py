@@ -42,7 +42,7 @@ setup(
                 ]
             },
         package_data={
-            "pydemx" : ["cfg.pydemx"],
+            "pydemx" : ["cfg.pydemx.default"],
             },
         zip_safe=True,
     )

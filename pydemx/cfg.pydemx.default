@@ -22,7 +22,6 @@ cfg = {
         "key_designator" : "@", # make sure this is no python.re special
                                 # character
         # external configuration and if we look in upper directories
-        "ext_config_filename" : "config.skel.yaml",
-        "ext_config_check_upwards" : True,
+        "ext_config_filename" : "config.pydemx",
     }
 

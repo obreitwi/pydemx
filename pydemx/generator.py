@@ -82,6 +82,11 @@ class Generator(object):
             osp.join(self.cfg["folder"], self.cfg["filename"])))
         log.info("Writing to output file {}".format(filename))
 
+        try:
+            os.makedirs(osp.dirname(filename))
+        except OSError:
+            pass
+
         with open(filename, "w") as f:
             for tb in self.text_blocks:
                 f.write(self.process_text(os.linesep.join(tb.lines)+os.linesep))
