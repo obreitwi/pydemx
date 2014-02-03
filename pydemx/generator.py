@@ -92,5 +92,6 @@ class Generator(object):
                 f.write(self.process_text(os.linesep.join(tb.lines)+os.linesep))
 
         if self.cfg["permissions"] is not None:
-            os.chmod(filename, int(self.cfg["permissions"]))
+            log.debug("Changing file permissions to {:o}".format(self.cfg["permissions"]))
+            os.chmod(filename, self.cfg["permissions"])
 

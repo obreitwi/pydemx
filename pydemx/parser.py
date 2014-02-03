@@ -66,7 +66,7 @@ class Parser(object):
         # define replacements from replacement blocks
         known_repl_block_names = set()
         for rb in repl_blocks:
-            self.read_replacements(tb.lines)
+            self.read_replacements(rb.lines)
             match = self.matcher_repl_block_title.match(rb.title).groupdict()
 
             log.debug("Match object for replacement block: {}".format(pf(match)))
@@ -106,8 +106,10 @@ class Parser(object):
 
     def read_replacements(self, lines):
         for line in lines:
+            log.debug("Reading replacements for line: {}".format(line))
             for match in self.replacement_t.matcher.finditer(line):
                 gd = match.groupdict()
+                log.debug("Read replacment {}".format(gd))
                 self.replacement_t(**gd)
 
     def _create_utils(self):
