@@ -96,9 +96,12 @@ class Parser(object):
 
         # execute the code from code blocks
         # include a dummy cfg dict to be compatible with the first cfg block
-        m.execute_code(code_blocks[0].lines, {"R": self.replacement_t, "cfg":{}})
+
+        # allow the code lines to pass data along
+        context = {"R": self.replacement_t, "cfg":copy.deepcopy(cfg)}
+        m.execute_code(code_blocks[0].lines, context)
         for cb in code_blocks[1:]:
-            m.execute_code(cb.lines, {"R": self.replacement_t})
+            m.execute_code(cb.lines, context)
 
 
     def read_replacements(self, lines):
