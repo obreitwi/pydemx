@@ -37,9 +37,11 @@ class Replacement(dict):
 
     def __init__(self, name, default=None):
         self.name = name
-        if default is not None or not hasattr(self, "default"):
+        if default is not None:
             log.debug("{}: Setting default to {}".format(name, default))
             self.default = default
+        elif  not hasattr(self, "default"):
+            self.default = ""
         if getattr(self, "_initialized_once", False):
             super(Replacement, self).__init__()
             self.initialized_once= True
