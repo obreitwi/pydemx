@@ -46,7 +46,8 @@ class Parser(object):
             "replacement_prefix",
             "replacement_suffix",
             "default_seperator",
-            "key_designator"
+            "key_designator",
+            "multi_key_seperator"
         ]
 
     def __init__(self, cfg, text_blocks, repl_blocks, code_blocks):
@@ -87,7 +88,18 @@ class Parser(object):
             repl = self.replacement_t(match["name"])
             combined_lines = os.linesep.join(rb.lines)
             if match["key"] is not None:
-                repl[match["key"]] = combined_lines
+                # see if we have more than one key fo which we have the same
+                # replacement
+                mks = self.cfg["multi_key_seperator"]
+                if mks is not None and mks in match["key"]:
+                    keys = match["key"].split(mks)
+                else:
+                    keys = [match["key"]]
+
+                log.debug("Keys for {}: {}".format(match["name"], pf(keys)))
+
+                for k in keys:
+                    repl[k] = combined_lines
             else:
                 repl.default = combined_lines
 
@@ -118,8 +130,9 @@ class Parser(object):
             formatter strings.
         """
         repl_block_title_line = r"^\s*((?P<name>\S+?)"\
-            "(\s*{designator}\s*(?P<key>\S+))?)?$".format(
-                designator=self.cfg["key_designator"])
+            "(\s*{designator}\s*(?P<key>(\S|{mks})+))?)?$".format(
+                designator=self.cfg["key_designator"],
+                mks=self.cfg["multi_key_seperator"])
 
         log.debug("Replacement block title matcher: {}".format(
             repl_block_title_line))

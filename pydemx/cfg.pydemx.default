@@ -19,6 +19,7 @@ cfg = {
         "replacement_prefix" : r"{{",
         "replacement_suffix" : r"}}",
         "default_seperator" : ":",
+        "multi_key_seperator" : ",",
         "key_designator" : "@", # make sure this is no python.re special
                                 # character
         # external configuration and if we look in upper directories
