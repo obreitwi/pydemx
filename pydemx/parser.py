@@ -50,7 +50,11 @@ class Parser(object):
             "multi_key_seperator"
         ]
 
-    def __init__(self, cfg, text_blocks, repl_blocks, code_blocks):
+    def __init__(self, cfg, tokenizer):
+        text_blocks = tokenizer.text_blocks
+        repl_blocks = tokenizer.repl_blocks
+        code_blocks = tokenizer.code_blocks
+
         log.debug("Parsing file.")
         self.cfg = {k:cfg[k] for k in self.config_keys}
         self.replacement_t = make_replacement_t()

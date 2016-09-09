@@ -55,13 +55,26 @@ class Tokenizer(object):
     """
         Tokenizes the input file into blocks. 
     """
+    NO_PARSE_TOKEN = "#PYDEMXIGNORE"
+
     def __init__(self, file):
         log.debug("Tokenizing file.")
         file.seek(0)
 
-        # ignore a possible shebang
-        if not io.readline(file).startswith("#!/"):
+        first_line = io.readline(file)
+
+        # ignore file if token present
+        # (for example in config files)
+        if first_line == self.NO_PARSE_TOKEN:
+            self.ignore_file = True
             file.seek(0)
+            log.info("Ignoring file.")
+            return
+
+        # ignore a possible shebang
+        elif not first_line.startswith("#!/"):
+            file.seek(0)
+        self.ignore_file = False
 
         self._extract_magic_line(file)
 

@@ -78,6 +78,11 @@ Everything can be customized, for instance how replacements appear in the
 `.pydemx` file, what the default designator is and how replacement block
 designates its key value.
 
+Folder-wide configuration can be peformed via `cfg.pydemx` files. They are
+python files that should create a `cfg` dictionary containing any
+configuration. They can be prevented from being parsed by PyDeMX by adding the
+special line `#PYDEMXIGNORE` in the beginning.
+
 (TODO: Go into details here. --obreitwi, 26-12-13 12:21:28)
 
 #### Replacement block

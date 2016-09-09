@@ -34,13 +34,12 @@ from .tokenizer import Tokenizer
 from .parser import Parser
 from .generator import Generator
 from . import logcfg
-from . import logcfg
 from .logcfg import log
 
 raw_docstring = """
 
 Usage:
-    {prog} [options] <file_or_folder>...
+    {prog} (-v ...) [options] <file_or_folder>...
 
 Agruments:
     <file_or_folder>
@@ -65,6 +64,9 @@ Options:
     -v --verbose
         Verbose (debug) output.
 
+    -o --print-to-stdout
+        Print the generated config files to stdout instead of generating any
+        config files.
 """
 
 from .version import __version__
@@ -97,6 +99,9 @@ def parse_file(filename, args):
     with open(filename, "r") as f:
         tokenizer = Tokenizer(f)
 
+    if tokenizer.ignore_file:
+        return
+
     cfg = Config(filename, tokenizer.code_blocks[0])
     if cfg["folder"] is None or args["--current-folder"]:
         cfg["folder"] = osp.dirname(osp.abspath(filename))
@@ -104,17 +109,17 @@ def parse_file(filename, args):
     if cfg["filename"] is None:
         cfg["filename"] = osp.splitext(filename)[0]
 
+    if args["--print-to-stdout"]:
+        cfg["filename"] = None
+
     key_value = args["--key-value"] 
     if key_value is not None:
         log.info("Setting key-value to: {}".format(key_value))
         parser.config["key_func"] = lambda:key_value
 
-    parser = Parser(cfg,
-            tokenizer.text_blocks,
-            tokenizer.repl_blocks,
-            tokenizer.code_blocks)
+    parser = Parser(cfg, tokenizer)
 
-    generator = Generator(cfg, parser.text_blocks, parser.replacement_t)
+    generator = Generator(cfg, parser)
     generator.write()
 
     log.handlers[0].setFormatter(logcfg.formatter_in_use)
@@ -126,10 +131,14 @@ def main_loop(argv=None):
 
     args = docopt.docopt(get_updated_docstring(), argv=argv[1:],
             version=".".join(map(str, __version__)))
-    if args["--verbose"]:
+
+    if args["--verbose"] == 1:
+        logcfg.set_loglevel(log, "INFO")
+        for h in log.handlers:
+            logcfg.set_loglevel(h, "INFO")
+    elif args["--verbose"] > 1:
         logcfg.make_verbose()
         log.debug(pf(args))
-
 
     ext = args["--extension"]
     recursive = args["--recursive"]

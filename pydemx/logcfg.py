@@ -35,11 +35,11 @@ default_formatter = logging.Formatter("%(asctime)s %(levelname)s: "
 
 
 formatter_in_use = default_formatter # allows switching of the global formatter
-loglevel_in_use = "INFO"               # same for loglevels
+loglevel_in_use = "WARN"             # same for loglevels
 
 
 log = logging.getLogger(LOGNAME)
-log.setLevel(logging.INFO)
+log.setLevel(getattr(logging, loglevel_in_use))
 
 
 default_handler_stream = None
@@ -83,7 +83,7 @@ def add_stream_handler(**kwargs):
 
         **kwargs are passed to `add_handler`.
     """
-    return add_handler(logging.StreamHandler)
+    return add_handler(logging.StreamHandler, **kwargs)
 
 
 def add_file_handler(filename, mode="a", **kwargs):
@@ -113,7 +113,7 @@ if "DEBUG" in os.environ:
     formatter_in_use = default_verbose_formatter
 
 default_handler_stream = add_stream_handler(
-        loglevel="INFO")
+        loglevel=loglevel_in_use)
 
 if "DEBUG" in os.environ:
     make_verbose()

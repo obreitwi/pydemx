@@ -23,6 +23,7 @@
 
 import os
 import os.path as osp
+import sys
 
 from .logcfg import log
 
@@ -35,11 +36,11 @@ class Generator(object):
             "key_func",
         ]
 
-    def __init__(self, cfg, text_blocks, replacement_t):
+    def __init__(self, cfg, parser):
         log.debug("Generating.")
         self.cfg = {k: cfg[k] for k in self.config_keys}
-        self.replacement_t = replacement_t
-        self.text_blocks = text_blocks
+        self.replacement_t = parser.replacement_t
+        self.text_blocks = parser.text_blocks
 
         self.key_value = self.cfg["key_func"]()
 
@@ -78,20 +79,31 @@ class Generator(object):
         """
             Write the generated text to the file specified by the cfg.
         """
-        filename = osp.expanduser(osp.expandvars(
-            osp.join(self.cfg["folder"], self.cfg["filename"])))
-        log.info("Writing to output file {}".format(filename))
+        if self.cfg["filename"] is not None:
+            filename = osp.expanduser(osp.expandvars(
+                osp.join(self.cfg["folder"], self.cfg["filename"])))
+            log.info("Writing to output file {}".format(filename))
+        else:
+            filename = None
+            log.info("Writing to stdout.")
 
-        try:
-            os.makedirs(osp.dirname(filename))
-        except OSError:
-            pass
+        if filename is not None:
+            try:
+                os.makedirs(osp.dirname(filename))
+            except OSError:
+                pass
+            f = open(filename, "w")
+        else:
+            f = sys.stdout
 
-        with open(filename, "w") as f:
-            for tb in self.text_blocks:
-                f.write(self.process_text(os.linesep.join(tb.lines)+os.linesep))
+        for tb in self.text_blocks:
+            f.write(self.process_text(os.linesep.join(tb.lines)+os.linesep))
 
-        if self.cfg["permissions"] is not None:
-            log.debug("Changing file permissions to {:o}".format(self.cfg["permissions"]))
+        if filename is not None:
+            f.close()
+
+        if self.cfg["permissions"] is not None and filename is not None:
+            log.debug("Changing file permissions to {:o}".format(
+                self.cfg["permissions"]))
             os.chmod(filename, self.cfg["permissions"])
 
