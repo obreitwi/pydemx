@@ -39,7 +39,7 @@ from .logcfg import log
 raw_docstring = """
 
 Usage:
-    {prog} (-v ...) [options] <file_or_folder>...
+    {prog} [-v ...] [options] <file_or_folder>...
 
 Agruments:
     <file_or_folder>
