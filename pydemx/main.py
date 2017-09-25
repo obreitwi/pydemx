@@ -64,6 +64,9 @@ Options:
     -v --verbose
         Verbose (debug) output.
 
+    -q --silent
+        Suppress output.
+
     -o --print-to-stdout
         Print the generated config files to stdout instead of generating any
         config files.
@@ -132,11 +135,11 @@ def main_loop(argv=None):
     args = docopt.docopt(get_updated_docstring(), argv=argv[1:],
             version=".".join(map(str, __version__)))
 
-    if args["--verbose"] == 1:
+    if not args["--silent"]:
         logcfg.set_loglevel(log, "INFO")
         for h in log.handlers:
             logcfg.set_loglevel(h, "INFO")
-    elif args["--verbose"] > 1:
+    elif args["--verbose"] > 0:
         logcfg.make_verbose()
         log.debug(pf(args))
 
