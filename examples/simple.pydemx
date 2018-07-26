@@ -13,7 +13,7 @@ This is a {{testcase}}.
 #>>>
 #>>> repsection
 This is a whole replacement block (its default section).
-#>>> repsection @ host01
+#>>> repsection @ host01,host02
 This is a whole specific replacement section for a certain key value.
 
 With multilines and all.
