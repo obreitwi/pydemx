@@ -78,22 +78,6 @@ from .version import __version__
 def get_updated_docstring():
     return raw_docstring.format(prog=osp.basename(sys.argv[0]))
 
-def old_parse_file(filename, args):
-    current_folder = args["--current-folder"]
-
-    with open(filename, "r") as f:
-        parser = Parser(f)
-        parser.config()
-        parser.parse()
-        key_value = args["--key-value"]
-        if key_value is not None:
-            log.info("Setting key-value to: {}".format(key_value))
-            parser.config["key_func"] = lambda:key_value
-        kwargs ={}
-        if current_folder:
-            kwargs["filename"] = osp.splitext(filename)[0]
-        parser.write(**kwargs)
-
 def parse_file(filename, args):
     fileformatter = logging.Formatter("%(asctime)s {}: "
         "%(message)s".format(filename), datefmt="%y-%m-%d %H:%M:%S")
