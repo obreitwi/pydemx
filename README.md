@@ -26,7 +26,34 @@ corresponding `value_string` that corresponds to the `key`.
 
 ## `.pydemx` file syntax
 
-(Please see the [example](example/simple.skel) along with the description here.)
+Please see the [example](example/simple.pydemx):
+```python
+#>>>
+#>>># 
+# cfg["filename"] = "testing_example"
+# cfg["permissions"] = 0744
+#>>>
+
+This is a {{testcase}}.
+
+#>>>
+# r = R("testcase", "default case")
+# r["juno"] = "special case"
+# R("thisisnotused")
+#>>>
+#>>> repsection
+This is a whole replacement block (its default section).
+#>>> repsection @ host01,host02
+This is a whole specific replacement section for a certain key value.
+
+With multilines and all.
+#>>>
+
+A replacement with a {{simple:default value}}
+This is the regular end of the file.
+Note that there are no other values defined for the simple replacement.
+
+```
 
 ### Magic line
 
@@ -83,13 +110,12 @@ python files that should create a `cfg` dictionary containing any
 configuration. They can be prevented from being parsed by PyDeMX by adding the
 special line `#PYDEMXIGNORE` in the beginning.
 
-(TODO: Go into details here. --obreitwi, 26-12-13 12:21:28)
-
 #### Replacement block
 
 A replacement block is basically an easier way to perform multiline
-replacements. They are defined by the regular *magic line* followed by the name.
-A specific value is indicated by the designator (default: `name @ key-value`).
+replacements. They are defined by the regular *magic line* followed by the
+name. A specific value is indicated by the designator (default: `name @
+key-value`).
 
 Several replacements blocks can follow each other without the need of a
 terminating *magic line* after each.
