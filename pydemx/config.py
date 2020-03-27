@@ -2,17 +2,17 @@
 # encoding: utf-8
 
 # Copyright (c) 2013-2020 Oliver Breitwieser
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -33,9 +33,11 @@ from .logcfg import log
 CONFIG_FILENAME = "cfg.pydemx"
 DEFAULT_SUFFIX = ".default"
 
+
 def load_config_from_path(path):
     with open(path, "r") as f:
         return load_config(f.read())
+
 
 def load_config(text):
     ast = compile(text, "<string>", "exec")
@@ -49,6 +51,7 @@ def load_config(text):
         log.warn("{} does not define a proper cfg-dictionary.".format(path))
         return {}
 
+
 class Config(object):
     """
         Loads the default config and updates it with external config (if found)
@@ -59,7 +62,7 @@ class Config(object):
         log.debug("Reading config.")
         cfg = copy.deepcopy(defaults)
 
-        # update from external config 
+        # update from external config
         for ext_cfg in self.find_cfgs(path):
             cfg.update(ext_cfg)
 
@@ -68,6 +71,7 @@ class Config(object):
         # elsewhere
         def mock_R(*args):
             return {}
+
         local_context = {"cfg": {}, "R": mock_R}
         m.execute_code(cfg_code_block.lines, local_context=local_context)
         cfg.update(local_context["cfg"])
@@ -100,7 +104,4 @@ class Config(object):
         self._cfg[key] = value
 
 
-defaults = load_config(resource_string(__name__, CONFIG_FILENAME
-    + DEFAULT_SUFFIX))
-
-
+defaults = load_config(resource_string(__name__, CONFIG_FILENAME + DEFAULT_SUFFIX))

@@ -2,17 +2,17 @@
 # encoding: utf-8
 
 # Copyright (c) 2013-2020 Oliver Breitwieser
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -43,12 +43,12 @@ from . import io
 class Parser(object):
 
     config_keys = [
-            "replacement_prefix",
-            "replacement_suffix",
-            "default_seperator",
-            "key_designator",
-            "multi_key_seperator"
-        ]
+        "replacement_prefix",
+        "replacement_suffix",
+        "default_seperator",
+        "key_designator",
+        "multi_key_seperator",
+    ]
 
     def __init__(self, cfg, tokenizer):
         text_blocks = tokenizer.text_blocks
@@ -56,7 +56,7 @@ class Parser(object):
         code_blocks = tokenizer.code_blocks
 
         log.debug("Parsing file.")
-        self.cfg = {k:cfg[k] for k in self.config_keys}
+        self.cfg = {k: cfg[k] for k in self.config_keys}
         self.replacement_t = make_replacement_t()
 
         self._create_utils()
@@ -82,8 +82,9 @@ class Parser(object):
                 known_repl_block_names.add(match["name"])
                 text_repl = self.replacement_t.format.format(name=match["name"])
                 if log.getEffectiveLevel() <= logging.DEBUG:
-                    log.debug("Text inserted for replacement block: {}".format(
-                        pf(text_repl)))
+                    log.debug(
+                        "Text inserted for replacement block: {}".format(pf(text_repl))
+                    )
                 if rb.index > 0:
                     self.text_blocks[rb.index - 1].lines.append(text_repl)
                 else:
@@ -114,11 +115,10 @@ class Parser(object):
         # include a dummy cfg dict to be compatible with the first cfg block
 
         # allow the code lines to pass data along
-        context = {"R": self.replacement_t, "cfg":copy.deepcopy(cfg)}
+        context = {"R": self.replacement_t, "cfg": copy.deepcopy(cfg)}
         m.execute_code(code_blocks[0].lines, context)
         for cb in code_blocks[1:]:
             m.execute_code(cb.lines, context)
-
 
     def read_replacements(self, lines):
         for line in lines:
@@ -133,18 +133,20 @@ class Parser(object):
             Creates the appropriate matchers from the configuration as well as
             formatter strings.
         """
-        repl_block_title_line = r"^\s*((?P<name>\S+?)"\
+        repl_block_title_line = (
+            r"^\s*((?P<name>\S+?)"
             "(\s*{designator}\s*(?P<key>(\S|{mks})+))?)?$".format(
                 designator=self.cfg["key_designator"],
-                mks=self.cfg["multi_key_seperator"])
+                mks=self.cfg["multi_key_seperator"],
+            )
+        )
 
-        log.debug("Replacement block title matcher: {}".format(
-            repl_block_title_line))
+        log.debug("Replacement block title matcher: {}".format(repl_block_title_line))
 
         self.matcher_repl_block_title = re.compile(repl_block_title_line)
 
         self.replacement_t.create_utils(
-                prefix=self.cfg["replacement_prefix"],
-                suffix=self.cfg["replacement_suffix"],
-                seperator=self.cfg["default_seperator"])
-
+            prefix=self.cfg["replacement_prefix"],
+            suffix=self.cfg["replacement_suffix"],
+            seperator=self.cfg["default_seperator"],
+        )

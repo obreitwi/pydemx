@@ -2,17 +2,17 @@
 # encoding: utf-8
 
 # Copyright (c) 2013-2020 Oliver Breitwieser
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -78,9 +78,11 @@ from .version import __version__
 def get_updated_docstring():
     return raw_docstring.format(prog=osp.basename(sys.argv[0]))
 
+
 def parse_file(filename, args):
-    fileformatter = logging.Formatter("%(asctime)s {}: "
-        "%(message)s".format(filename), datefmt="%y-%m-%d %H:%M:%S")
+    fileformatter = logging.Formatter(
+        "%(asctime)s {}: " "%(message)s".format(filename), datefmt="%y-%m-%d %H:%M:%S"
+    )
     log.handlers[0].setFormatter(fileformatter)
 
     with open(filename, "r") as f:
@@ -99,10 +101,10 @@ def parse_file(filename, args):
     if args["--print-to-stdout"]:
         cfg["filename"] = None
 
-    key_value = args["--key-value"] 
+    key_value = args["--key-value"]
     if key_value is not None:
         log.info("Setting key-value to: {}".format(key_value))
-        parser.config["key_func"] = lambda:key_value
+        parser.config["key_func"] = lambda: key_value
 
     parser = Parser(cfg, tokenizer)
 
@@ -116,8 +118,9 @@ def main_loop(argv=None):
     if argv is None:
         argv = sys.argv
 
-    args = docopt.docopt(get_updated_docstring(), argv=argv[1:],
-            version=".".join(map(str, __version__)))
+    args = docopt.docopt(
+        get_updated_docstring(), argv=argv[1:], version=".".join(map(str, __version__))
+    )
 
     if not args["--silent"]:
         logcfg.set_loglevel(log, "INFO")
@@ -140,9 +143,11 @@ def main_loop(argv=None):
             for entry in os.listdir(faf):
                 path = osp.join(faf, entry)
 
-                valid_file = osp.isfile(path)\
-                    and osp.splitext(path)[-1] == ext\
+                valid_file = (
+                    osp.isfile(path)
+                    and osp.splitext(path)[-1] == ext
                     and osp.basename(osp.splitext(path)[0]) != "cfg"
+                )
                 valid_folder = recursive and osp.isdir(path)
 
                 if valid_file or valid_folder:
