@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-# Copyright (c) 2013-2018 Oliver Breitwieser
+# Copyright (c) 2013-2020 Oliver Breitwieser
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,12 +28,11 @@ import re
 from .logcfg import log
 from .meta import Singleton
 
-class Replacement(dict):
+class Replacement(dict, metaclass=Singleton):
     """
         Replacement object that gets instanciated by the client to define
         replacements.
     """
-    __metaclass__ = Singleton
 
     def __init__(self, name, default=None):
         self.name = name

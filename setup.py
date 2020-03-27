@@ -26,7 +26,13 @@ from setuptools import setup
 import os
 import os.path as osp
 
-execfile(osp.join(osp.dirname(osp.abspath(__file__)), "pydemx", "version.py"))
+
+exec(compile(
+     open(osp.join(osp.dirname(osp.abspath(__file__)), "pydemx", "version.py"),
+          "rb").read(),
+     osp.join(osp.dirname(osp.abspath(__file__)), "pydemx", "version.py"),
+     'exec'))
+
 
 setup(
         name="PyDeMX",
